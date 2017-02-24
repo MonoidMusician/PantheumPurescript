@@ -1,26 +1,26 @@
 module MDL.Menu where
 
-  import Halogen.HTML.Core (ClassName, className)
+  import Halogen.HTML.Core (ClassName(..))
 
   _bottomRight :: ClassName
-  _bottomRight = className "mdl-menu--bottom-right"
+  _bottomRight = ClassName "mdl-menu--bottom-right"
 
   _topLeft :: ClassName
-  _topLeft = className "mdl-menu--top-left"
+  _topLeft = ClassName "mdl-menu--top-left"
 
   _topRight :: ClassName
-  _topRight = className "mdl-menu--top-right"
+  _topRight = ClassName "mdl-menu--top-right"
 
   _unaligned :: ClassName
-  _unaligned = className "mdl-menu--unaligned"
+  _unaligned = ClassName "mdl-menu--unaligned"
 
   container :: ClassName
-  container = className "mdl-menu__container"
+  container = ClassName "mdl-menu__container"
 
   item :: ClassName
-  item = className "mdl-menu__item"
+  item = ClassName "mdl-menu__item"
 
   outline :: ClassName
-  outline = className "mdl-menu__outline"
+  outline = ClassName "mdl-menu__outline"
 
 

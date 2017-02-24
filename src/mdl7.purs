@@ -1,23 +1,23 @@
 module MDL.Checkbox where
 
-  import Halogen.HTML.Core (ClassName, className)
+  import Halogen.HTML.Core (ClassName(..))
 
   boxOutline :: ClassName
-  boxOutline = className "mdl-checkbox__box-outline"
+  boxOutline = ClassName "mdl-checkbox__box-outline"
 
   focusHelper :: ClassName
-  focusHelper = className "mdl-checkbox__focus-helper"
+  focusHelper = ClassName "mdl-checkbox__focus-helper"
 
   input :: ClassName
-  input = className "mdl-checkbox__input"
+  input = ClassName "mdl-checkbox__input"
 
   label :: ClassName
-  label = className "mdl-checkbox__label"
+  label = ClassName "mdl-checkbox__label"
 
   rippleContainer :: ClassName
-  rippleContainer = className "mdl-checkbox__ripple-container"
+  rippleContainer = ClassName "mdl-checkbox__ripple-container"
 
   tickOutline :: ClassName
-  tickOutline = className "mdl-checkbox__tick-outline"
+  tickOutline = ClassName "mdl-checkbox__tick-outline"
 
 

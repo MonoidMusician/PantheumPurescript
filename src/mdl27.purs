@@ -1,11 +1,11 @@
 module MDL.Progress where
 
-  import Halogen.HTML.Core (ClassName, className)
+  import Halogen.HTML.Core (ClassName(..))
 
   _indeterminate :: ClassName
-  _indeterminate = className "mdl-progress--indeterminate"
+  _indeterminate = ClassName "mdl-progress--indeterminate"
 
   indeterminate :: ClassName
-  indeterminate = className "mdl-progress__indeterminate"
+  indeterminate = ClassName "mdl-progress__indeterminate"
 
 

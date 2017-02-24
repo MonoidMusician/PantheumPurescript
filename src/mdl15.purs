@@ -1,8 +1,8 @@
 module MDL.Grid where
 
-  import Halogen.HTML.Core (ClassName, className)
+  import Halogen.HTML.Core (ClassName(..))
 
   _noSpacing :: ClassName
-  _noSpacing = className "mdl-grid--no-spacing"
+  _noSpacing = ClassName "mdl-grid--no-spacing"
 
 

@@ -1,14 +1,14 @@
 module MDL.Snackbar where
 
-  import Halogen.HTML.Core (ClassName, className)
+  import Halogen.HTML.Core (ClassName(..))
 
   _active :: ClassName
-  _active = className "mdl-snackbar--active"
+  _active = ClassName "mdl-snackbar--active"
 
   action :: ClassName
-  action = className "mdl-snackbar__action"
+  action = ClassName "mdl-snackbar__action"
 
   text :: ClassName
-  text = className "mdl-snackbar__text"
+  text = ClassName "mdl-snackbar__text"
 
 

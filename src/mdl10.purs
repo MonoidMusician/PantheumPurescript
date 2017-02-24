@@ -1,8 +1,8 @@
 module MDL.DataTable where
 
-  import Halogen.HTML.Core (ClassName, className)
+  import Halogen.HTML.Core (ClassName(..))
 
   select :: ClassName
-  select = className "mdl-data-table__select"
+  select = ClassName "mdl-data-table__select"
 
 

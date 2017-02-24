@@ -1,8 +1,8 @@
 module MDL.Navigation where
 
-  import Halogen.HTML.Core (ClassName, className)
+  import Halogen.HTML.Core (ClassName(..))
 
   link :: ClassName
-  link = className "mdl-navigation__link"
+  link = ClassName "mdl-navigation__link"
 
 

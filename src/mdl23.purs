@@ -1,11 +1,11 @@
 module MDL.Menu.Item where
 
-  import Halogen.HTML.Core (ClassName, className)
+  import Halogen.HTML.Core (ClassName(..))
 
   _fullBleedDivider :: ClassName
-  _fullBleedDivider = className "mdl-menu__item--full-bleed-divider"
+  _fullBleedDivider = ClassName "mdl-menu__item--full-bleed-divider"
 
   _rippleContainer :: ClassName
-  _rippleContainer = className "mdl-menu__item--ripple-container"
+  _rippleContainer = ClassName "mdl-menu__item--ripple-container"
 
 

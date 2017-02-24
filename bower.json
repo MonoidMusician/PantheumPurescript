@@ -10,6 +10,11 @@
   ],
   "dependencies": {
     "purescript-console": "^2.0.0",
-    "purescript-halogen": "^0.12.0"
+    "purescript-halogen": "^0.12.0",
+    "purescript-aff-coroutines": "^4.0.0"
+  },
+  "resolutions": {
+    "purescript-halogen": "^1.0.0-rc.4",
+    "purescript-halogen-css": "5.0.0-rc.2"
   }
 }

@@ -1,29 +1,29 @@
 module MDL.Textfield where
 
-  import Halogen.HTML.Core (ClassName, className)
+  import Halogen.HTML.Core (ClassName(..))
 
   _alignRight :: ClassName
-  _alignRight = className "mdl-textfield--align-right"
+  _alignRight = ClassName "mdl-textfield--align-right"
 
   _expandable :: ClassName
-  _expandable = className "mdl-textfield--expandable"
+  _expandable = ClassName "mdl-textfield--expandable"
 
   _floatingLabel :: ClassName
-  _floatingLabel = className "mdl-textfield--floating-label"
+  _floatingLabel = ClassName "mdl-textfield--floating-label"
 
   _fullWidth :: ClassName
-  _fullWidth = className "mdl-textfield--full-width"
+  _fullWidth = ClassName "mdl-textfield--full-width"
 
   error :: ClassName
-  error = className "mdl-textfield__error"
+  error = ClassName "mdl-textfield__error"
 
   expandableHolder :: ClassName
-  expandableHolder = className "mdl-textfield__expandable-holder"
+  expandableHolder = ClassName "mdl-textfield__expandable-holder"
 
   input :: ClassName
-  input = className "mdl-textfield__input"
+  input = ClassName "mdl-textfield__input"
 
   label :: ClassName
-  label = className "mdl-textfield__label"
+  label = ClassName "mdl-textfield__label"
 
 

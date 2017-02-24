@@ -1,17 +1,17 @@
 module MDL.Tabs where
 
-  import Halogen.HTML.Core (ClassName, className)
+  import Halogen.HTML.Core (ClassName(..))
 
   panel :: ClassName
-  panel = className "mdl-tabs__panel"
+  panel = ClassName "mdl-tabs__panel"
 
   rippleContainer :: ClassName
-  rippleContainer = className "mdl-tabs__ripple-container"
+  rippleContainer = ClassName "mdl-tabs__ripple-container"
 
   tab :: ClassName
-  tab = className "mdl-tabs__tab"
+  tab = ClassName "mdl-tabs__tab"
 
   tabBar :: ClassName
-  tabBar = className "mdl-tabs__tab-bar"
+  tabBar = ClassName "mdl-tabs__tab-bar"
 
 

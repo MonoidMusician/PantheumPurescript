@@ -1,8 +1,8 @@
 module MDL.Tooltip where
 
-  import Halogen.HTML.Core (ClassName, className)
+  import Halogen.HTML.Core (ClassName(..))
 
   _large :: ClassName
-  _large = className "mdl-tooltip--large"
+  _large = ClassName "mdl-tooltip--large"
 
 

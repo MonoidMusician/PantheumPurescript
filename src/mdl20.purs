@@ -1,11 +1,11 @@
 module MDL.List.Item where
 
-  import Halogen.HTML.Core (ClassName, className)
+  import Halogen.HTML.Core (ClassName(..))
 
   _threeLine :: ClassName
-  _threeLine = className "mdl-list__item--three-line"
+  _threeLine = ClassName "mdl-list__item--three-line"
 
   _twoLine :: ClassName
-  _twoLine = className "mdl-list__item--two-line"
+  _twoLine = ClassName "mdl-list__item--two-line"
 
 

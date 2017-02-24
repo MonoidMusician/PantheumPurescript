@@ -1,11 +1,11 @@
 module MDL.Badge where
 
-  import Halogen.HTML.Core (ClassName, className)
+  import Halogen.HTML.Core (ClassName(..))
 
   _noBackground :: ClassName
-  _noBackground = className "mdl-badge--no-background"
+  _noBackground = ClassName "mdl-badge--no-background"
 
   _overlap :: ClassName
-  _overlap = className "mdl-badge--overlap"
+  _overlap = ClassName "mdl-badge--overlap"
 
 

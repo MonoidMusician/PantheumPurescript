@@ -1,14 +1,14 @@
 module MDL.Dialog where
 
-  import Halogen.HTML.Core (ClassName, className)
+  import Halogen.HTML.Core (ClassName(..))
 
   actions :: ClassName
-  actions = className "mdl-dialog__actions"
+  actions = ClassName "mdl-dialog__actions"
 
   content :: ClassName
-  content = className "mdl-dialog__content"
+  content = ClassName "mdl-dialog__content"
 
   title :: ClassName
-  title = className "mdl-dialog__title"
+  title = ClassName "mdl-dialog__title"
 
 

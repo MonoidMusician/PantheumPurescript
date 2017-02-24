@@ -1,32 +1,32 @@
 module MDL.Card where
 
-  import Halogen.HTML.Core (ClassName, className)
+  import Halogen.HTML.Core (ClassName(..))
 
   _border :: ClassName
-  _border = className "mdl-card--border"
+  _border = ClassName "mdl-card--border"
 
   _expand :: ClassName
-  _expand = className "mdl-card--expand"
+  _expand = ClassName "mdl-card--expand"
 
   actions :: ClassName
-  actions = className "mdl-card__actions"
+  actions = ClassName "mdl-card__actions"
 
   media :: ClassName
-  media = className "mdl-card__media"
+  media = ClassName "mdl-card__media"
 
   menu :: ClassName
-  menu = className "mdl-card__menu"
+  menu = ClassName "mdl-card__menu"
 
   subtitleText :: ClassName
-  subtitleText = className "mdl-card__subtitle-text"
+  subtitleText = ClassName "mdl-card__subtitle-text"
 
   supportingText :: ClassName
-  supportingText = className "mdl-card__supporting-text"
+  supportingText = ClassName "mdl-card__supporting-text"
 
   title :: ClassName
-  title = className "mdl-card__title"
+  title = ClassName "mdl-card__title"
 
   titleText :: ClassName
-  titleText = className "mdl-card__title-text"
+  titleText = ClassName "mdl-card__title-text"
 
 

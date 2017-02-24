@@ -5,8 +5,8 @@ module MDL where
   import DOM (DOM())
   import DOM.HTML.Types (HTMLElement())
 
-  import Halogen.HTML.Core (ClassName, className)
-  import Halogen.HTML.Properties.Indexed (IProp(), I)
+  import Halogen.HTML.Core (ClassName(..))
+  import Halogen.HTML.Properties (IProp())
 
   class HasMDLInitializer i where
     mdlInitializer :: HTMLElement -> i
@@ -17,141 +17,139 @@ module MDL where
   foreign import upgradeElement :: ∀ eff. HTMLElement -> Eff (dom :: DOM | eff) Unit
 
   jsButton :: ClassName
-  jsButton = className "mdl-js-button"
+  jsButton = ClassName "mdl-js-button"
 
   jsCheckbox :: ClassName
-  jsCheckbox = className "mdl-js-checkbox"
+  jsCheckbox = ClassName "mdl-js-checkbox"
 
   jsIconToggle :: ClassName
-  jsIconToggle = className "mdl-js-icon-toggle"
+  jsIconToggle = ClassName "mdl-js-icon-toggle"
 
   jsMenu :: ClassName
-  jsMenu = className "mdl-js-menu"
+  jsMenu = ClassName "mdl-js-menu"
 
   jsProgress :: ClassName
-  jsProgress = className "mdl-js-progress"
+  jsProgress = ClassName "mdl-js-progress"
 
   jsRadio :: ClassName
-  jsRadio = className "mdl-js-radio"
+  jsRadio = ClassName "mdl-js-radio"
 
   jsSlider :: ClassName
-  jsSlider = className "mdl-js-slider"
+  jsSlider = ClassName "mdl-js-slider"
 
   jsSpinner :: ClassName
-  jsSpinner = className "mdl-js-spinner"
+  jsSpinner = ClassName "mdl-js-spinner"
 
   jsSwitch :: ClassName
-  jsSwitch = className "mdl-js-switch"
+  jsSwitch = ClassName "mdl-js-switch"
 
   jsTabs :: ClassName
-  jsTabs = className "mdl-js-tabs"
+  jsTabs = ClassName "mdl-js-tabs"
 
   jsTextfield :: ClassName
-  jsTextfield = className "mdl-js-textfield"
+  jsTextfield = ClassName "mdl-js-textfield"
 
   jsLayout :: ClassName
-  jsLayout = className "mdl-js-layout"
+  jsLayout = ClassName "mdl-js-layout"
 
   jsDataTable :: ClassName
-  jsDataTable = className "mdl-js-data-table"
+  jsDataTable = ClassName "mdl-js-data-table"
 
   jsRippleEffect :: ClassName
-  jsRippleEffect = className "mdl-js-ripple-effect"
+  jsRippleEffect = ClassName "mdl-js-ripple-effect"
 
   accordion :: ClassName
-  accordion = className "mdl-accordion"
+  accordion = ClassName "mdl-accordion"
 
   badge :: ClassName
-  badge = className "mdl-badge"
+  badge = ClassName "mdl-badge"
 
   button :: ClassName
-  button = className "mdl-button"
+  button = ClassName "mdl-button"
 
   card :: ClassName
-  card = className "mdl-card"
+  card = ClassName "mdl-card"
 
   cell :: ClassName
-  cell = className "mdl-cell"
+  cell = ClassName "mdl-cell"
 
   checkbox :: ClassName
-  checkbox = className "mdl-checkbox"
+  checkbox = ClassName "mdl-checkbox"
 
   dataTable :: ClassName
-  dataTable = className "mdl-data-table"
+  dataTable = ClassName "mdl-data-table"
 
   dialog :: ClassName
-  dialog = className "mdl-dialog"
+  dialog = ClassName "mdl-dialog"
 
   dropdownMenu :: ClassName
-  dropdownMenu = className "mdl-dropdown-menu"
+  dropdownMenu = ClassName "mdl-dropdown-menu"
 
   grid :: ClassName
-  grid = className "mdl-grid"
+  grid = ClassName "mdl-grid"
 
   iconToggle :: ClassName
-  iconToggle = className "mdl-icon-toggle"
+  iconToggle = ClassName "mdl-icon-toggle"
 
   item :: ClassName
-  item = className "mdl-item"
+  item = ClassName "mdl-item"
 
   layout :: ClassName
-  layout = className "mdl-layout"
+  layout = ClassName "mdl-layout"
 
   layoutIcon :: ClassName
-  layoutIcon = className "mdl-layout-icon"
+  layoutIcon = ClassName "mdl-layout-icon"
 
   layoutSpacer :: ClassName
-  layoutSpacer = className "mdl-layout-spacer"
+  layoutSpacer = ClassName "mdl-layout-spacer"
 
   layoutTitle :: ClassName
-  layoutTitle = className "mdl-layout-title"
+  layoutTitle = ClassName "mdl-layout-title"
 
   list :: ClassName
-  list = className "mdl-list"
+  list = ClassName "mdl-list"
 
   logo :: ClassName
-  logo = className "mdl-logo"
+  logo = ClassName "mdl-logo"
 
   megaFooter :: ClassName
-  megaFooter = className "mdl-mega-footer"
+  megaFooter = ClassName "mdl-mega-footer"
 
   menu :: ClassName
-  menu = className "mdl-menu"
+  menu = ClassName "mdl-menu"
 
   miniFooter :: ClassName
-  miniFooter = className "mdl-mini-footer"
+  miniFooter = ClassName "mdl-mini-footer"
 
   navigation :: ClassName
-  navigation = className "mdl-navigation"
+  navigation = ClassName "mdl-navigation"
 
   progress :: ClassName
-  progress = className "mdl-progress"
+  progress = ClassName "mdl-progress"
 
   radio :: ClassName
-  radio = className "mdl-radio"
+  radio = ClassName "mdl-radio"
 
   ripple :: ClassName
-  ripple = className "mdl-ripple"
+  ripple = ClassName "mdl-ripple"
 
   slider :: ClassName
-  slider = className "mdl-slider"
+  slider = ClassName "mdl-slider"
 
   snackbar :: ClassName
-  snackbar = className "mdl-snackbar"
+  snackbar = ClassName "mdl-snackbar"
 
   spinner :: ClassName
-  spinner = className "mdl-spinner"
+  spinner = ClassName "mdl-spinner"
 
   switch :: ClassName
-  switch = className "mdl-switch"
+  switch = ClassName "mdl-switch"
 
   tabs :: ClassName
-  tabs = className "mdl-tabs"
+  tabs = ClassName "mdl-tabs"
 
   textfield :: ClassName
-  textfield = className "mdl-textfield"
+  textfield = ClassName "mdl-textfield"
 
   tooltip :: ClassName
-  tooltip = className "mdl-tooltip"
-
-
+  tooltip = ClassName "mdl-tooltip"

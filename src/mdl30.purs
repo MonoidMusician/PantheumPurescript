@@ -1,20 +1,20 @@
 module MDL.Slider where
 
-  import Halogen.HTML.Core (ClassName, className)
+  import Halogen.HTML.Core (ClassName(..))
 
   backgroundFlex :: ClassName
-  backgroundFlex = className "mdl-slider__background-flex"
+  backgroundFlex = ClassName "mdl-slider__background-flex"
 
   backgroundLower :: ClassName
-  backgroundLower = className "mdl-slider__background-lower"
+  backgroundLower = ClassName "mdl-slider__background-lower"
 
   backgroundUpper :: ClassName
-  backgroundUpper = className "mdl-slider__background-upper"
+  backgroundUpper = ClassName "mdl-slider__background-upper"
 
   container :: ClassName
-  container = className "mdl-slider__container"
+  container = ClassName "mdl-slider__container"
 
   ieContainer :: ClassName
-  ieContainer = className "mdl-slider__ie-container"
+  ieContainer = ClassName "mdl-slider__ie-container"
 
 

@@ -1,23 +1,23 @@
 module MDL.Switch where
 
-  import Halogen.HTML.Core (ClassName, className)
+  import Halogen.HTML.Core (ClassName(..))
 
   focusHelper :: ClassName
-  focusHelper = className "mdl-switch__focus-helper"
+  focusHelper = ClassName "mdl-switch__focus-helper"
 
   input :: ClassName
-  input = className "mdl-switch__input"
+  input = ClassName "mdl-switch__input"
 
   label :: ClassName
-  label = className "mdl-switch__label"
+  label = ClassName "mdl-switch__label"
 
   rippleContainer :: ClassName
-  rippleContainer = className "mdl-switch__ripple-container"
+  rippleContainer = ClassName "mdl-switch__ripple-container"
 
   thumb :: ClassName
-  thumb = className "mdl-switch__thumb"
+  thumb = ClassName "mdl-switch__thumb"
 
   track :: ClassName
-  track = className "mdl-switch__track"
+  track = ClassName "mdl-switch__track"
 
 
