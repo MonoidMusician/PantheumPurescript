@@ -3,7 +3,8 @@
   "scripts": {
     "postinstall": "bower install",
     "build": "pulp browserify --optimise --to dist/app.js",
-    "watch": "pulp -w browserify --to dist/app.js"
+    "watch": "pulp -w browserify --to dist/app.js",
+    "atom": "pulp build -- --json-errors && pulp browserify --to dist/app.js"
   },
   "dependencies": {
     "virtual-dom": "^2.1.1"
