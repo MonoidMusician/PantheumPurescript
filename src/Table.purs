@@ -1,9 +1,11 @@
 module Table where
 
 import Prelude
+import Data.Typelevel.Num
 import DOM.Event.Event as Event
 import DOM.HTML.HTMLInputElement as HInput
 import Data.Array as Array
+import Data.Maybe as Maybe
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -14,8 +16,9 @@ import MDL.Card as Card
 import MDL.Layout as Layout
 import MDL.Shadow as Shadow
 import MDL.Textfield as Textfield
-import CSS (marginLeft, marginRight)
+import CSS (marginLeft, marginRight, rad, vGradient)
 import CSS.Common (auto)
+import Control.Bind ((=<<))
 import Control.Monad.Aff (Aff)
 import Control.Monad.Eff (Eff)
 import DOM (DOM)
@@ -23,39 +26,39 @@ import DOM.Event.Types (Event, MouseEvent)
 import DOM.HTML.Indexed.InputType (InputType(..))
 import DOM.HTML.Types (HTMLInputElement)
 import Data.Maybe (Maybe(..))
-import Data.Typelevel.Num
-import Data.Vec (Vec(..), (!!), (+>), empty, toArray)
+import Data.Vector (Vec(..), (!!), (+>), empty, toArray, mapWithIndex)
 import Halogen.HTML.CSS (style)
 import Unsafe.Coerce (unsafeCoerce)
 
 single :: forall a b. (Array (HH.HTML a b) -> HH.HTML a b) -> HH.HTML a b -> HH.HTML a b
 single node child = node [ child ]
-infixr 8 single as <\>
+infixr 9 single as <\>
 
 data Query a
     = ToggleState a
     | UserInput Event a
 
-class (Nat nRows, Nat nCols) <= Table outer inner nRows nCols where
-    rowLabels :: Vec nRows String
-    colLabels :: Vec nCols String
-    index :: forall i j. (Nat i, Nat j, Lt i nRows, Lt j nCols) => i -> j -> outer -> inner
+type Inflection nRows nCols cell =
+    { rowLabels :: Vec nRows String
+    , colLabels :: Vec nCols String
+    , cells :: Vec nRows (Vec nCols cell)
+    }
 
-newtype Noun = Noun (Vec D5 (Vec D2 String))
-instance nounTable :: Table Noun String D5 D2 where
-    rowLabels = "nom" +> "gen" +> "dat" +> "acc" +> "abl" +> empty
-    colLabels = "sg" +> "pl" +> empty
-    index i j (Noun datable) = datable !! i !! j
+type Declension cell = Inflection D5 D2 cell
+type Noun = Declension String
 
 nomen :: Noun
 nomen =
-    Noun $
+    { rowLabels: "nom" +> "gen" +> "dat" +> "acc" +> "abl" +> empty
+    , colLabels: "sg" +> "pl" +> empty
+    , cells:
         ( "nomen" +> "nomina" +> empty ) +>
         ( "nominis" +> "nominum" +> empty) +>
         ( "nomini" +> "nominibus" +> empty) +>
         ( "nomen" +> "nomina" +> empty) +>
         ( "nomine" +> "nominibus" +> empty) +>
         empty
+    }
 
 type State =
     { on :: Boolean
@@ -117,11 +120,19 @@ card =
 thtext :: forall a b. String -> HH.HTML a b
 thtext = HH.th_ <<< Array.singleton <<< HH.text
 
-table :: forall outer inner nRows nCols a b. (Table outer inner nRows nCols) => outer -> (inner -> HH.HTML a b) -> HH.HTML a b
-table datable mapper = HH.table_ <\> HH.tbody_ (Array.cons header rows)
+tdtext :: forall a b. String -> HH.HTML a b
+tdtext = HH.td_ <<< Array.singleton <<< HH.text
+
+table :: forall cell nRows nCols a b. (Nat nRows, Nat nCols) => Inflection nRows nCols cell -> (cell -> HH.HTML a b) -> HH.HTML a b
+table datable mapper = HH.table_ <\> HH.tbody_ (map HH.tr_ (Array.cons header rows))
     where
-      header = HH.tr_ (Array.cons (thtext "") $ map thtext $ ["h","e","l","l","o"]{-toArray colLabels-})
-      rows = []
+      header = Array.cons (thtext "") $ map thtext $ toArray datable.colLabels
+      labels = toArray datable.rowLabels
+      label i = Maybe.fromMaybe "" $ Array.index labels i
+      rows =
+        Array.mapWithIndex rowOf $ toArray datable.cells
+      rowOf i cells =
+        Array.cons (thtext $ label i) (map mapper $ toArray cells)
 
 ui :: forall eff. H.Component HH.HTML Query Unit Void (Aff (dom :: DOM | eff))
 ui = H.component { render, eval, initialState: const initialState, receiver: const Nothing }
@@ -132,7 +143,7 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
     mdiv1 Layout.container <\>
       mdiv [ MDL.layout ] <\>
         mdiv1 Layout.content <\>
-            table nomen (HH.td_ <<< Array.singleton <<< HH.text)
+            table nomen tdtext
 
   eval :: Query ~> H.ComponentDSL State Query Void (Aff (dom :: DOM | eff))
   eval (ToggleState next) = do
