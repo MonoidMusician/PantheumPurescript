@@ -32,6 +32,9 @@ module Data.Vector
   , sortBy
   , reverse
   , mapWithIndex
+  , updateAtI
+  , updateAt_
+  , runIntIndexed
   ) where
 
 import Prelude
@@ -42,10 +45,11 @@ import Data.Tuple (Tuple(Tuple))
 import Data.Typelevel.Num (class Min, class Sub, class LtEq, class Pred, class Lt)
 import Data.Typelevel.Num.Ops (class Add, class Succ)
 import Data.Typelevel.Num.Reps (D1, D0)
-import Data.Typelevel.Num.Sets (toInt, class Pos, class Nat)
+import Data.Typelevel.Num.Sets (class Nat, class Pos, reifyInt, toInt)
 import Data.Typelevel.Undefined (undefined)
 import Data.Unfoldable (class Unfoldable)
-import Partial.Unsafe (unsafePartial)
+import Partial.Unsafe (unsafeCrashWith, unsafePartial)
+import Unsafe.Coerce (unsafeCoerce)
 
 -- | `Vec s a` is an array with a fixed size `s` defined at the type level.
 newtype Vec s a = Vec (Array a)
@@ -113,6 +117,8 @@ concat (Vec xs1) (Vec xs2) = Vec $ Array.concat [xs1, xs2]
 -- | Update a vector with a given value inserted at a given index.
 updateAt :: forall i s a. (Nat i, Nat s, Lt i s) => i -> a -> Vec s a -> Vec s a
 updateAt i v (Vec xs) = Vec $ unsafePartial $ fromJust $ Array.updateAt (toInt i) v xs
+updateAt_ :: forall i s a. (Nat i, Nat s) => i -> a -> Vec s a -> Vec s a
+updateAt_ i v (Vec xs) = Vec $ unsafePartial $ fromJust $ Array.updateAt (toInt i) v xs
 
 -- | Update a vector at a given index using a function.
 modifyAt :: forall i s a. (Nat i, Nat s, Lt i s) => i -> (a -> a) -> Vec s a -> Vec s a
@@ -195,8 +201,25 @@ sortBy f (Vec v) = Vec $ Array.sortBy f v
 reverse :: forall s a. (Nat s) => Vec s a -> Vec s a
 reverse (Vec v) = Vec $ Array.reverse v
 
+-- | Map the vector, supplying the index to the mapping function.
 mapWithIndex :: forall s a b. (Nat s) => (Int -> a -> b) -> Vec s a -> Vec s b
-mapWithIndex mapper (Vec array) = Vec (Array.mapWithIndex mapper array)
+mapWithIndex mapper (Vec array) = Vec $ Array.mapWithIndex mapper array
+
+-- | Run a function that takes a type-valued index with a int-valued index
+--runIntIndexed :: forall i s1 s2 a. (Nat i, Nat s1, Nat s2, Lt i s1) => (i -> a -> Vec s1 a -> Vec s2 a) -> Int -> a -> Vec s1 a -> Vec s2 a
+--runIntIndexed :: forall s1 a. (Nat s1) => (forall i. (Nat i, Lt i s1) => i -> a -> Vec s1 a -> Vec s1 a) -> Int -> a -> Vec s1 a -> Vec s1 a
+runIntIndexed :: forall s1 a x. (Nat s1) => (forall i. (Nat i) => i -> x -> Vec s1 a -> Vec s1 a) -> Int -> x -> Vec s1 a -> Vec s1 a
+runIntIndexed f i x v
+    | i >= toInt (undefined :: s1) = unsafeCrashWith "runIntIndexed: index out of bounds"
+    | otherwise =
+        let
+            f' = f--(unsafeCoerce f) :: forall i. (Nat i) => i -> a -> Vec s1 a -> Vec s1 a--(unsafeCoerce (flip f x) :: forall j s z. (Nat j, Nat s, Nat z) => j -> Vec s a -> Vec z a)
+        in
+            reifyInt i f' x v
+
+--updateAtI :: forall s a. (Nat s, Lt s i) => Int -> a -> Vec s a -> Vec s a
+updateAtI = runIntIndexed updateAt
+deleteAtI = flip (runIntIndexed (flip $ const deleteAt)) unit
 
 instance functorVec :: (Nat s) => Functor (Vec s) where
   map f (Vec xs) = Vec $ map f xs
