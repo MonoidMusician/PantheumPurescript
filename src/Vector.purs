@@ -208,18 +208,18 @@ mapWithIndex mapper (Vec array) = Vec $ Array.mapWithIndex mapper array
 -- | Run a function that takes a type-valued index with a int-valued index
 --runIntIndexed :: forall i s1 s2 a. (Nat i, Nat s1, Nat s2, Lt i s1) => (i -> a -> Vec s1 a -> Vec s2 a) -> Int -> a -> Vec s1 a -> Vec s2 a
 --runIntIndexed :: forall s1 a. (Nat s1) => (forall i. (Nat i, Lt i s1) => i -> a -> Vec s1 a -> Vec s1 a) -> Int -> a -> Vec s1 a -> Vec s1 a
-runIntIndexed :: forall s1 a x. (Nat s1) => (forall i. (Nat i) => i -> x -> Vec s1 a -> Vec s1 a) -> Int -> x -> Vec s1 a -> Vec s1 a
-runIntIndexed f i x v
+runIntIndexed :: forall s1 a x. (Nat s1) => (forall i. (Nat i) => x -> i -> Vec s1 a -> Vec s1 a) -> x -> Int -> Vec s1 a -> Vec s1 a
+runIntIndexed f x i v
     | i >= toInt (undefined :: s1) = unsafeCrashWith "runIntIndexed: index out of bounds"
     | otherwise =
         let
             f' = f--(unsafeCoerce f) :: forall i. (Nat i) => i -> a -> Vec s1 a -> Vec s1 a--(unsafeCoerce (flip f x) :: forall j s z. (Nat j, Nat s, Nat z) => j -> Vec s a -> Vec z a)
         in
-            reifyInt i f' x v
+            reifyInt i (\j -> f' x j v)
 
 --updateAtI :: forall s a. (Nat s, Lt s i) => Int -> a -> Vec s a -> Vec s a
-updateAtI = runIntIndexed updateAt
-deleteAtI = flip (runIntIndexed (flip $ const deleteAt)) unit
+updateAtI = runIntIndexed (flip updateAt)
+deleteAtI = runIntIndexed (const deleteAt) unit
 
 instance functorVec :: (Nat s) => Functor (Vec s) where
   map f (Vec xs) = Vec $ map f xs
