@@ -1,25 +1,64 @@
-module ArrayState where
+module Scansion where
 
 import Prelude
-import Control.Monad.Aff (launchAff)
-import Control.Monad.Eff (Eff)
-import Control.Monad.Eff.Class (liftEff)
-import Control.Monad.Eff.Console (CONSOLE, log, logShow)
-import Control.Monad.List.Trans (ListT, nil)
+
+
+
+
+
+
+
 import Control.Monad.State (State)
-import Control.Monad.State.Trans (StateT, evalStateT, get, lift, put)
-import Control.MonadPlus (guard)
-import Data.Array (reverse, (..))
+import Control.Monad.State.Trans (evalStateT, get, put)
+
+import Data.Array (reverse)
 import Data.Generic (class Generic, gCompare, gEq, gShow)
 import Data.Identity (Identity(..))
-import Data.Maybe (Maybe(..))
+
 import Data.String (Pattern(..), indexOf, joinWith, split, trim)
 import Data.String.Regex (Regex, test)
 import Data.String.Regex.Flags (global, ignoreCase)
 import Data.String.Regex.Unsafe (unsafeRegex)
 import Data.Traversable (sequence)
-import Node.ReadLine.Question (raw)
-import Control.Monad.Loops (whileJust_)
+
+
+
+
+import DOM.Event.Event as Event
+import DOM.HTML.HTMLInputElement as HInput
+import Data.Array as Array
+import Halogen as H
+import Halogen.HTML as HH
+import Halogen.HTML.Events as HE
+import Halogen.HTML.Properties as HP
+import MDL as MDL
+import MDL.Button as Button
+import MDL.Card as Card
+import MDL.Shadow as Shadow
+import MDL.Textfield as Textfield
+import CSS (marginLeft, marginRight)
+import CSS.Common (auto)
+import Control.Monad.Aff (Aff)
+import DOM (DOM)
+import DOM.Event.Types (Event, MouseEvent)
+import DOM.HTML.Indexed.InputType (InputType(..))
+import DOM.HTML.Types (HTMLInputElement)
+import Data.Maybe (Maybe(..))
+import Halogen.HTML.CSS (style)
+import Unsafe.Coerce (unsafeCoerce)
+
+import Control.Monad.Eff (Eff)
+import Halogen.Aff (HalogenEffects)
+import Halogen.Aff.Util (awaitBody, runHalogenAff)
+import Halogen.VDom.Driver (runUI)
+
+single :: forall a b. (Array (HH.HTML a b) -> HH.HTML a b) -> HH.HTML a b -> HH.HTML a b
+single node child = node [ child ]
+infixr 0 single as ><
+
+oftext :: forall a b. (Array (HH.HTML a b) -> HH.HTML a b) -> String -> HH.HTML a b
+oftext node = single node <<< HH.text
+infixr 0 oftext as />
 
 
 newtype Line =
@@ -231,56 +270,119 @@ prescanned = Line $ mkwords "arma virumque canō, Trōjae quī prīmus ab ōrīs
 rescanned :: Line
 rescanned = rescan prescanned
 
--- Find Pythagorean triples using an array comprehension.
-triples_ :: Int -> ListT (State Int) (Array Int)
-triples_ n = do
-  i <- lift get
-  lift $ put (i + 1)
-  pure [i]
-  nil
-  pure [i+1]
 
-triples' :: Int -> Array (State Int (Array Int))
-triples' n = do
-  z <- 1 .. n
-  y <- 1 .. z
-  x <- 1 .. y
-  guard $ x * x + y * y == z * z
-  pure do
-    i <- get
-    put (i + 1)
-    pure [i,x,y,z]
+data Query a
+    = ToggleState a
+    | UserInput Event a
 
-triples :: Int -> Array (Array Int)
---triples = (flip evalStateT 0) <<< _triples
---triples = (flip evalStateT 0) <<< foldl (flip cons) [] <<< triples_
---triples = const [[2]]
-triples = (\(Identity i) -> i) <<< (flip evalStateT 0) <<< sequence <<< triples'
 
-_triples :: Int -> StateT Int Array (Array Int)
-_triples n = do
-  z <- lift $ 1 .. n
-  y <- lift $ 1 .. z
-  x <- lift $ 1 .. y
-  guard $ x * x + y * y == z * z
-  i <- get
-  put (i + 1)
-  pure [i, x, y, z]
+type UIState =
+    { on :: Boolean
+    , text :: String
+    }
 
---main :: forall e. Eff ( console :: CONSOLE, err :: EXCEPTION, readline :: READLINE | e ) Unit
---main = for_ (triples 20) logShow
-{-
-main = do
-    logShow prescanned
-    logShow rescanned
--}
+initialState :: UIState
+initialState =
+    { on: false
+    , text: "arma virumque canō, Trōjae quī prīmus ab ōrīs"
+    }
 
-main = launchAff $ do
-    liftEff $ logShow prescanned
-    liftEff $ logShow rescanned
-    whileJust_
-        (raw "> " # map case _ of
-            "" -> Nothing
-            line -> Just line
-        )
-        (mkline >>> logShow >>> liftEff)
+button :: forall a b. (MouseEvent -> Maybe b) -> Array HH.ClassName -> String -> HH.HTML a b
+button cmd classes label =
+  HH.button
+    [ HE.onClick cmd
+    , HP.classes $
+        append classes
+          [ MDL.button
+          , MDL.jsButton
+          , MDL.jsRippleEffect
+          , Button._raised
+          ]
+    ]
+    [ HH.text label ]
+
+input :: forall a b. (Event -> Maybe b) -> Array HH.ClassName -> String -> String -> HH.HTML a b
+input cmd classes label value =
+    mdiv [ MDL.textfield, MDL.jsTextfield ]
+        [ HH.input
+            [ HP.classes [ Textfield.input ]
+            , HP.type_ InputText
+            , HP.id_ "sample1"
+            , HE.onInput cmd
+            , HP.value value
+            ]
+        , HH.label
+            [ HP.classes [ Textfield.label ]
+            , HP.for "sample1"
+            ]
+            [ HH.text label ]
+        ]
+
+textarea :: forall a b. (Event -> Maybe b) -> Array HH.ClassName -> String -> Int -> String -> HH.HTML a b
+textarea cmd classes label rows value =
+    mdiv [ MDL.textfield, MDL.jsTextfield ]
+        [ HH.textarea
+            [ HP.classes [ Textfield.input ]
+            , HP.id_ "sample2"
+            , HE.onInput cmd
+            , HP.value value
+            , HP.rows rows
+            ]
+        , HH.label
+            [ HP.classes [ Textfield.label ]
+            , HP.for "sample2"
+            ]
+            [ HH.text label ]
+        ]
+
+mdiv :: forall a b. Array HH.ClassName -> Array (HH.HTML a b) -> HH.HTML a b
+mdiv classes children =
+    HH.div [ HP.classes classes ] children
+mdiv1 :: forall a b. HH.ClassName -> Array (HH.HTML a b) -> HH.HTML a b
+mdiv1 = mdiv <<< Array.singleton
+
+card :: forall a b. Array (HH.HTML a b) -> HH.HTML a b
+card =
+    HH.div
+        [ HP.classes [ MDL.card, Shadow._2Dp ]
+        , style do
+            marginLeft auto
+            marginRight auto
+        ]
+
+ui :: forall eff. H.Component HH.HTML Query Unit Void (Aff (dom :: DOM | eff))
+ui = H.component { render, eval, initialState: const initialState, receiver: const Nothing }
+  where
+
+  render :: UIState -> H.ComponentHTML Query
+  render state =
+    HH.div_
+        [ HH.h2_/>"Pantheum"
+        , textarea (HE.input UserInput) [] "Text to scan" 5 state.text
+        , HH.br_
+        , HH.text (show $ mkline state.text)
+        , mdiv [ Card.actions, Card._border ]
+          [ button
+            (HE.input_ ToggleState)
+            [ Button._colored ]
+            (if not state.on
+                then "Don't push me"
+                else "I said don't push me!"
+            )
+          ]
+        ]
+
+  eval :: Query ~> H.ComponentDSL UIState Query Void (Aff (dom :: DOM | eff))
+  eval (ToggleState next) = do
+    H.modify (\state -> { on: not state.on, text: "Bye" })
+    pure next
+  eval (UserInput e next) = do
+    let node = unsafeCoerce Event.target e :: HTMLInputElement
+    s <- H.liftEff (HInput.value node :: Eff (dom :: DOM | eff) String)
+    H.modify (\state -> { on: state.on, text: s })
+    pure next
+
+main :: Eff (HalogenEffects ()) Unit
+main = runHalogenAff do
+  body <- awaitBody
+  runUI ui unit body
