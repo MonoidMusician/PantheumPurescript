@@ -1,65 +1,38 @@
 module Scansion where
 
 import Prelude
+import UIHelpers (textarea, (/>))
 
+import Unsafe.Coerce (unsafeCoerce)
 
-
-
-
-
-
+import Control.Monad.Aff (Aff)
+import Control.Monad.Eff (Eff)
 import Control.Monad.State (State)
 import Control.Monad.State.Trans (evalStateT, get, put)
 
-import Data.Array (reverse)
-import Data.Generic (class Generic, gCompare, gEq, gShow)
 import Data.Identity (Identity(..))
-
+import Data.Maybe (Maybe(..))
+import Data.Array (reverse) as Array
 import Data.String (Pattern(..), indexOf, joinWith, split, trim)
 import Data.String.Regex (Regex, test)
 import Data.String.Regex.Flags (global, ignoreCase)
 import Data.String.Regex.Unsafe (unsafeRegex)
 import Data.Traversable (sequence)
+import Data.Generic (class Generic, gCompare, gEq, gShow)
 
-
-
-
+import DOM (DOM)
 import DOM.Event.Event as Event
+import DOM.Event.Types (Event)
+import DOM.HTML.Types (HTMLInputElement)
 import DOM.HTML.HTMLInputElement as HInput
-import Data.Array as Array
+
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import MDL as MDL
-import MDL.Button as Button
-import MDL.Card as Card
-import MDL.Shadow as Shadow
-import MDL.Textfield as Textfield
-import CSS (marginLeft, marginRight)
-import CSS.Common (auto)
-import Control.Monad.Aff (Aff)
-import DOM (DOM)
-import DOM.Event.Types (Event, MouseEvent)
-import DOM.HTML.Indexed.InputType (InputType(..))
-import DOM.HTML.Types (HTMLInputElement)
-import Data.Maybe (Maybe(..))
-import Halogen.HTML.CSS (style)
-import Unsafe.Coerce (unsafeCoerce)
-
-import Control.Monad.Eff (Eff)
 import Halogen.Aff (HalogenEffects)
 import Halogen.Aff.Util (awaitBody, runHalogenAff)
 import Halogen.VDom.Driver (runUI)
-
-single :: forall a b. (Array (HH.HTML a b) -> HH.HTML a b) -> HH.HTML a b -> HH.HTML a b
-single node child = node [ child ]
-infixr 0 single as ><
-
-oftext :: forall a b. (Array (HH.HTML a b) -> HH.HTML a b) -> String -> HH.HTML a b
-oftext node = single node <<< HH.text
-infixr 0 oftext as />
-
 
 newtype Line =
     Line (Array Res)
@@ -137,8 +110,8 @@ ugly monad init =
 
 ugly2 :: forall i r. Array (State i r) -> i -> Array r
 ugly2 monad init =
-    case evalStateT (sequence (reverse monad)) init of
-        Identity res -> reverse res
+    case evalStateT (sequence (Array.reverse monad)) init of
+        Identity res -> Array.reverse res
 
 data ScanBias = Elidable | IntoVowel | IntoConsonant | IntoDoubleConsonant | LineEnd
 derive instance genericScanBias :: Generic ScanBias
@@ -176,7 +149,7 @@ inner syllable = do
     pure ({ value: syllable.value {-<> show bias-}, stype })
 
 middle :: Array Syllable -> State ScanBias (Array Syllable)
-middle syllables = map reverse $ sequence $ reverse $ map inner syllables
+middle syllables = map Array.reverse $ sequence $ Array.reverse $ map inner syllables
 
 outer :: Res -> State ScanBias Res
 outer (Verb w) = do
@@ -287,69 +260,6 @@ initialState =
     , text: "arma virumque canō, Trōjae quī prīmus ab ōrīs"
     }
 
-button :: forall a b. (MouseEvent -> Maybe b) -> Array HH.ClassName -> String -> HH.HTML a b
-button cmd classes label =
-  HH.button
-    [ HE.onClick cmd
-    , HP.classes $
-        append classes
-          [ MDL.button
-          , MDL.jsButton
-          , MDL.jsRippleEffect
-          , Button._raised
-          ]
-    ]
-    [ HH.text label ]
-
-input :: forall a b. (Event -> Maybe b) -> Array HH.ClassName -> String -> String -> HH.HTML a b
-input cmd classes label value =
-    mdiv [ MDL.textfield, MDL.jsTextfield ]
-        [ HH.input
-            [ HP.classes [ Textfield.input ]
-            , HP.type_ InputText
-            , HP.id_ "sample1"
-            , HE.onInput cmd
-            , HP.value value
-            ]
-        , HH.label
-            [ HP.classes [ Textfield.label ]
-            , HP.for "sample1"
-            ]
-            [ HH.text label ]
-        ]
-
-textarea :: forall a b. (Event -> Maybe b) -> Array HH.ClassName -> String -> Int -> String -> HH.HTML a b
-textarea cmd classes label rows value =
-    mdiv [ MDL.textfield, MDL.jsTextfield ]
-        [ HH.textarea
-            [ HP.classes [ Textfield.input ]
-            , HP.id_ "sample2"
-            , HE.onInput cmd
-            , HP.value value
-            , HP.rows rows
-            ]
-        , HH.label
-            [ HP.classes [ Textfield.label ]
-            , HP.for "sample2"
-            ]
-            [ HH.text label ]
-        ]
-
-mdiv :: forall a b. Array HH.ClassName -> Array (HH.HTML a b) -> HH.HTML a b
-mdiv classes children =
-    HH.div [ HP.classes classes ] children
-mdiv1 :: forall a b. HH.ClassName -> Array (HH.HTML a b) -> HH.HTML a b
-mdiv1 = mdiv <<< Array.singleton
-
-card :: forall a b. Array (HH.HTML a b) -> HH.HTML a b
-card =
-    HH.div
-        [ HP.classes [ MDL.card, Shadow._2Dp ]
-        , style do
-            marginLeft auto
-            marginRight auto
-        ]
-
 ui :: forall eff. H.Component HH.HTML Query Unit Void (Aff (dom :: DOM | eff))
 ui = H.component { render, eval, initialState: const initialState, receiver: const Nothing }
   where
@@ -361,15 +271,6 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
         , textarea (HE.input UserInput) [] "Text to scan" 5 state.text
         , HH.br_
         , HH.text (show $ mkline state.text)
-        , mdiv [ Card.actions, Card._border ]
-          [ button
-            (HE.input_ ToggleState)
-            [ Button._colored ]
-            (if not state.on
-                then "Don't push me"
-                else "I said don't push me!"
-            )
-          ]
         ]
 
   eval :: Query ~> H.ComponentDSL UIState Query Void (Aff (dom :: DOM | eff))
