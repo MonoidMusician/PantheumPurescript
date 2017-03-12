@@ -10,9 +10,8 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import CSS (ex, fromHexString, rgba, nil)
+import CSS (ex, fromHexString, nil)
 import CSS.Common (auto)
-import CSS.Transform (transform, translate)
 import Control.Monad.Aff (Aff)
 import Control.Monad.Eff (Eff)
 import Control.Monad.State (State)
@@ -72,6 +71,7 @@ instance displayLine :: HalogenDisplay Line where
                 HH.span_ $ map display syllables
 
 
+y_mark :: forall a b. HP.IProp ( style :: String | a ) b
 y_mark =
     style do
         CSS.color (unsafePartial $ fromJust $ fromHexString "#F50057")
@@ -304,13 +304,6 @@ mkwords content =
     --content # split r_word # map (\s -> Verb { syllables: mksyllables s, gloss: s})
     processtext (\s -> Verb $ { syllables: mksyllables s, gloss: s }) Punct content
 
-prescanned :: Line
-prescanned = Line $ mkwords "arma virumque canō, Trōjae quī prīmus ab ōrīs"
-
-rescanned :: Line
-rescanned = rescan false prescanned
-
-
 data Query a
     = ToggleState a
     | UserInput Event a
@@ -324,7 +317,7 @@ type UIState =
 initialState :: UIState
 initialState =
     { simplify: true
-    , text: """arma virumque canō, Trōjae quī prīmus ab ōrīs
+    , text: """arma virumque canō, Trōiae quī prīmus ab ōrīs
 Ītaliam fātō profugus Lāvīni͡aque vēnit"""
     }
 

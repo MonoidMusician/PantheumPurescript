@@ -1,22 +1,42 @@
 <!doctype html>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:foo="http://www.w3.org/2000/svg">
-  <head>
+<head>
     <title>Scansion</title>
     <style>
-      body, input, textarea {
+    @font-face {
+        font-family: "Junicode";
+        src: url("../../../Fonts/Junicode.woff");
+    }
+    @font-face {
+        font-family: "Junicode";
+        font-weight: bold;
+        src: url("../../../Fonts/Junicode-Bold.woff");
+    }
+    @font-face {
+        font-family: "Junicode";
+        font-style: italic;
+        src: url("../../../Fonts/Junicode-Italic.woff");
+    }
+    @font-face {
+        font-family: "Junicode";
+        font-weight: bold;
+        font-style: italic;
+        src: url("../../../Fonts/Junicode-BoldItalic.woff");
+    }
+    body, input, textarea {
         font-family: "Junicode" !important;
         font-size: 32px !important;
-      }
-      textarea {
-          width: 100% !important;
-      }
+    }
+    textarea {
+        width: 100% !important;
+    }
     </style>
     <!--<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
     <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>-->
-  </head>
-  <body>
+</head>
+<body>
     <script src="scansion.js"></script>
     <script>window.onload = () => componentHandler.upgradeDom()</script>
-  </body>
+</body>
 </html>
