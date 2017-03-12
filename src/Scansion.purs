@@ -1,6 +1,7 @@
 module Scansion where
 
 import Prelude
+import UIHelpers
 import CSS as CSS
 import CSS.Overflow as CSS.Overflow
 import CSS.TextAlign as CSS.TextAlign
@@ -10,18 +11,18 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import ArrayState (evalReversedArrayState, sequenceReversed)
 import CSS (ex, fromHexString, nil)
 import CSS.Common (auto)
 import Control.Monad.Aff (Aff)
 import Control.Monad.Eff (Eff)
 import Control.Monad.State (State)
-import Control.Monad.State.Trans (evalStateT, get, put)
+import Control.Monad.State.Trans (get, put)
 import DOM (DOM)
 import DOM.Event.Types (Event)
 import DOM.HTML.Types (HTMLInputElement)
-import Data.Array (reverse, mapWithIndex, filter) as Array
+import Data.Array (filter, mapWithIndex) as Array
 import Data.Generic (class Generic, gCompare, gEq, gShow)
-import Data.Identity (Identity(..))
 import Data.Int (odd)
 import Data.Maybe (Maybe(..), fromJust)
 import Data.String (Pattern(..), indexOf, joinWith, trim)
@@ -29,13 +30,11 @@ import Data.String (split) as String
 import Data.String.Regex (Regex, test, split)
 import Data.String.Regex.Flags (global, ignoreCase)
 import Data.String.Regex.Unsafe (unsafeRegex)
-import Data.Traversable (sequence)
 import Halogen.Aff (HalogenEffects)
 import Halogen.Aff.Util (awaitBody, runHalogenAff)
 import Halogen.HTML.CSS (style)
 import Halogen.VDom.Driver (runUI)
 import Partial.Unsafe (unsafePartial)
-import UIHelpers
 import Unsafe.Coerce (unsafeCoerce)
 
 newtype Line =
@@ -149,16 +148,6 @@ weight syllable =
     else
         IntoVowel
 
-ugly :: forall i r. Array (State i r) -> i -> Array r
-ugly monad init =
-    case evalStateT (sequence monad) init of
-        Identity res -> res
-
-ugly2 :: forall i r. Array (State i r) -> i -> Array r
-ugly2 monad init =
-    case evalStateT (sequence (Array.reverse monad)) init of
-        Identity res -> Array.reverse res
-
 data ScanBias = Elidable | IntoVowel | IntoConsonant | IntoDoubleConsonant | LineEnd
 derive instance genericScanBias :: Generic ScanBias
 
@@ -195,7 +184,7 @@ inner simplify syllable@(Syllable {value}) = do
     pure (Syllable { value, stype })
 
 middle :: Boolean -> Array Syllable -> State ScanBias (Array Syllable)
-middle simplify syllables = map Array.reverse $ sequence $ Array.reverse $ map (inner simplify) syllables
+middle simplify syllables = sequenceReversed $ map (inner simplify) syllables
 
 outer :: Boolean -> Res -> State ScanBias Res
 outer simplify (Verb w) = do
@@ -213,7 +202,10 @@ outer _ (res@Punct "\n") = do
 outer _ res = pure res
 
 rescan :: Boolean -> Line -> Line
-rescan simplify (Line line) = Line $ ugly2 (map (outer simplify) line) LineEnd
+rescan simplify (Line line) = Line rescanned
+    where
+        rescanned = evalReversedArrayState statecomputation LineEnd
+        statecomputation = map (outer simplify) line
 
 
 v :: String
