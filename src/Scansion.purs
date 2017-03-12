@@ -1,38 +1,43 @@
 module Scansion where
 
 import Prelude
-import UIHelpers (textarea, (/>))
-
-import Unsafe.Coerce (unsafeCoerce)
-
-import Control.Monad.Aff (Aff)
-import Control.Monad.Eff (Eff)
-import Control.Monad.State (State)
-import Control.Monad.State.Trans (evalStateT, get, put)
-
-import Data.Identity (Identity(..))
-import Data.Maybe (Maybe(..))
-import Data.Array (reverse) as Array
-import Data.String (Pattern(..), indexOf, joinWith, split, trim)
-import Data.String.Regex (Regex, test)
-import Data.String.Regex.Flags (global, ignoreCase)
-import Data.String.Regex.Unsafe (unsafeRegex)
-import Data.Traversable (sequence)
-import Data.Generic (class Generic, gCompare, gEq, gShow)
-
-import DOM (DOM)
+import CSS as CSS
+import CSS.Overflow as CSS.Overflow
+import CSS.TextAlign as CSS.TextAlign
 import DOM.Event.Event as Event
-import DOM.Event.Types (Event)
-import DOM.HTML.Types (HTMLInputElement)
 import DOM.HTML.HTMLInputElement as HInput
-
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import CSS (ex, fromHexString, rgba, nil)
+import CSS.Common (auto)
+import CSS.Transform (transform, translate)
+import Control.Monad.Aff (Aff)
+import Control.Monad.Eff (Eff)
+import Control.Monad.State (State)
+import Control.Monad.State.Trans (evalStateT, get, put)
+import DOM (DOM)
+import DOM.Event.Types (Event)
+import DOM.HTML.Types (HTMLInputElement)
+import Data.Array (reverse, mapWithIndex, filter) as Array
+import Data.Generic (class Generic, gCompare, gEq, gShow)
+import Data.Identity (Identity(..))
+import Data.Int (odd)
+import Data.Maybe (Maybe(..), fromJust)
+import Data.String (Pattern(..), indexOf, joinWith, trim)
+import Data.String (split) as String
+import Data.String.Regex (Regex, test, split)
+import Data.String.Regex.Flags (global, ignoreCase)
+import Data.String.Regex.Unsafe (unsafeRegex)
+import Data.Traversable (sequence)
 import Halogen.Aff (HalogenEffects)
 import Halogen.Aff.Util (awaitBody, runHalogenAff)
+import Halogen.HTML.CSS (style)
 import Halogen.VDom.Driver (runUI)
+import Partial.Unsafe (unsafePartial)
+import UIHelpers (textarea, (/>), scale, no_user_select, spacer, zindex, no_pointer_events)
+import Unsafe.Coerce (unsafeCoerce)
 
 newtype Line =
     Line (Array Res)
@@ -44,8 +49,49 @@ instance showLine :: Show Line where
             Punct s -> s
             Verb { syllables } ->
                 joinWith "" do
-                    { value, stype } <- syllables
-                    pure (value <> show stype)
+                    Syllable { value, stype } <- syllables
+                    --pure (value <> show stype)
+                    pure value
+
+class HalogenDisplay displayable where
+    display :: forall a b. displayable -> HH.HTML a b
+
+instance displayLine :: HalogenDisplay Line where
+    display line_@(Line line) =
+        HH.div_ [ scanned, raw ]
+        where
+            raw = HH.span [ style $ zindex 1 ] [ HH.text $ show line_ ]
+            scanned = HH.div [ divstyle ] $ map mapper line
+            divstyle = style do
+                CSS.height (1.0#ex)
+                zindex (-1)
+                no_pointer_events
+            mapper (Punct "\n") = HH.br_
+            mapper (Punct s) = spacer $ HH.text s
+            mapper (Verb { syllables, gloss }) =
+                HH.span_ $ map display syllables
+
+
+y_mark =
+    style do
+        CSS.color (unsafePartial $ fromJust $ fromHexString "#F50057")
+        CSS.Overflow.overflow CSS.Overflow.visible
+        CSS.height (ex 1.0)
+        scale 2.0 1.4
+        no_user_select
+        CSS.margin auto auto auto auto
+        CSS.TextAlign.textAlign CSS.TextAlign.center
+
+instance displaySyllable :: HalogenDisplay Syllable where
+    display (Syllable { value, stype }) =
+        HH.div
+            [ style do
+                CSS.display CSS.inlineBlock
+                CSS.height nil
+            ]
+            [ HH.div [ y_mark ] [ HH.text $ show stype ]
+            , spacer $ HH.text value
+            ]
 
 data Res
     = Punct String
@@ -58,7 +104,7 @@ type Word =
     }
 
 
-type Syllable =
+newtype Syllable = Syllable
     { value :: String
     , stype :: SyllableType
     }
@@ -126,6 +172,16 @@ instance ordScanBias :: Ord ScanBias where
   compare = gCompare
 
 reform :: Syllable -> ScanBias -> SyllableType
+reform _ IntoDoubleConsonant = Long
+reform (Syllable {stype: Ambiguous _}) LineEnd = Long
+reform (Syllable {stype: Short}) LineEnd = Ambiguous Nothing
+reform (Syllable {stype: Ambiguous Nothing}) IntoVowel = Ambiguous (Just false)
+reform (Syllable {stype: Ambiguous Nothing}) Elidable = Ambiguous (Just false)
+reform (Syllable {stype: Ambiguous Nothing}) IntoConsonant = Ambiguous (Just true)
+reform (Syllable {value}) Elidable
+    | test r_elision value = Elided
+reform (Syllable {stype}) _ = stype
+{-
 reform syllable bias =
     case bias of
         Elidable | test r_elision syllable.value ->
@@ -133,6 +189,9 @@ reform syllable bias =
         IntoDoubleConsonant ->
             Long
         _ -> case syllable.stype of
+            Short
+                | bias == LineEnd ->
+                    Ambiguous Nothing
             Ambiguous Nothing
                 | bias == IntoVowel
                 || bias == Elidable ->
@@ -140,13 +199,14 @@ reform syllable bias =
                 | bias == IntoConsonant ->
                     Ambiguous $ Just true
             st -> st
+-}
 
 inner :: Syllable -> State ScanBias Syllable
-inner syllable = do
+inner syllable@(Syllable {value}) = do
     bias <- get
-    put (weight syllable.value)
+    put (weight value)
     let stype = reform syllable bias
-    pure ({ value: syllable.value {-<> show bias-}, stype })
+    pure (Syllable { value, stype })
 
 middle :: Array Syllable -> State ScanBias (Array Syllable)
 middle syllables = map Array.reverse $ sequence $ Array.reverse $ map inner syllables
@@ -154,9 +214,16 @@ middle syllables = map Array.reverse $ sequence $ Array.reverse $ map inner syll
 outer :: Res -> State ScanBias Res
 outer (Verb w) = do
     bias <- get
-    when (bias == IntoVowel) (put Elidable)
+    case bias of
+        IntoVowel -> put Elidable
+        -- double consonants do not affect preceding word in scansion
+        IntoDoubleConsonant -> put IntoConsonant
+        _ -> pure unit
     syllables <- middle w.syllables
     pure $ Verb { syllables, gloss: w.gloss }
+outer (res@Punct "\n") = do
+    put LineEnd
+    pure res
 outer res = pure res
 
 rescan :: Line -> Line
@@ -212,7 +279,7 @@ mksyllables content =
     --content # Regex.match r_syllable # fromMaybe [] # map (_.match >>> syllable)
 
 mksyllable :: String -> Syllable
-mksyllable s =
+mksyllable s = Syllable
     { value: s
     , stype:
         if test r_short s then
@@ -225,17 +292,31 @@ mksyllable s =
 
 mkline :: String -> Line
 mkline content =
-    content # mkwords # Line # rescan
+    content # mkwords # Array.filter nonempty # Line # rescan
+    where
+        nonempty (Punct "") = false
+        nonempty (Verb { syllables: [] }) = false
+        nonempty _ = true
 
 mklines :: String -> Array Line
 mklines content =
-    trim content # split (Pattern "\n") # map (trim >>> mkline)
+    trim content # String.split (Pattern "\n") # map (trim >>> mkline)
+
+
+processtext :: (String -> Res) -> (String -> Res) -> String -> Array Res
+processtext mkverb mkpunct =
+    let
+        mapper i
+            | odd i = mkverb
+            | otherwise = mkpunct
+    in
+        Array.mapWithIndex mapper <<< split r_word
 
 
 mkwords :: String -> Array Res
 mkwords content =
-    content # _findall r_word # map (\s -> Verb { syllables: mksyllables s, gloss: s})
-    --processtext (\s -> Verb $ { syllables: syllables s, gloss: s }) Punct content
+    --content # split r_word # map (\s -> Verb { syllables: mksyllables s, gloss: s})
+    processtext (\s -> Verb $ { syllables: mksyllables s, gloss: s }) Punct content
 
 prescanned :: Line
 prescanned = Line $ mkwords "arma virumque canō, Trōjae quī prīmus ab ōrīs"
@@ -270,7 +351,7 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
         [ HH.h2_/>"Pantheum"
         , textarea (HE.input UserInput) [] "Text to scan" 5 state.text
         , HH.br_
-        , HH.text (show $ mkline state.text)
+        , display $ mkline state.text
         ]
 
   eval :: Query ~> H.ComponentDSL UIState Query Void (Aff (dom :: DOM | eff))

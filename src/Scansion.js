@@ -1,7 +1,6 @@
 exports._findall = function (re) {
-    return function (str) {
+    return function (string) {
         var out = [];
-        var string = str;
         var lastIndex = re.lastIndex;
         var prevLastIndex = -1;
         var result;

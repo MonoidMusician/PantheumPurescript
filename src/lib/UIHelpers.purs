@@ -8,8 +8,19 @@ import MDL as MDL
 import MDL.Button as Button
 import MDL.Shadow as Shadow
 import MDL.Textfield as Textfield
-import CSS (marginLeft, marginRight)
-import CSS.Common (auto)
+import CSS (fromString, marginLeft, marginRight)
+import CSS.Common (class None, auto, none)
+import CSS.Display (display, inlineBlock)
+import CSS.Geometry (height)
+import CSS.Property (class Val, value)
+import CSS.Size (Size(..), nil)
+import CSS.Stylesheet (CSS, key)
+import CSS.Text.Whitespace (textWhitespace, whitespacePre)
+import CSS.Transform (Transformation(..), transform, translate)
+import Data.Array (singleton)
+import Data.Int (fromNumber, toNumber)
+import Halogen.HTML (span)
+import Halogen.HTML.CSS (style)
 import DOM.Event.Types (Event, MouseEvent)
 import DOM.HTML.Indexed.InputType (InputType(..))
 import Data.Array (singleton) as Array
@@ -87,3 +98,45 @@ card =
             marginLeft auto
             marginRight auto
         ]
+
+
+
+zindex :: Int -> CSS
+zindex = key (fromString "z-index") <<< toNumber
+
+scale :: Number -> Number -> CSS
+scale x y =
+    transform $ Transformation $ fromString ("scale(" <> show x <> "," <> show y <> ")")
+
+data Meh = Meh
+instance mehVal :: Val Meh where
+    value _ = fromString "none"
+
+no_user_select :: CSS
+no_user_select =
+    userselect Meh
+    where
+        userselect = key (fromString "user-select") :: (Meh -> CSS)
+
+no_pointer_events :: CSS
+no_pointer_events =
+    pointerevents Meh
+    where
+        pointerevents = key (fromString "pointer-events") :: (Meh -> CSS)
+
+data Hidden = Hidden
+instance hiddenVal :: Val Hidden where
+    value _ = fromString "hidden"
+
+hidden =
+    key (fromString "visibility") Hidden
+
+
+transparent = span [ style hidden ] <<< singleton
+
+spacer = span [ style do
+    hidden
+    height nil
+    display inlineBlock
+    textWhitespace whitespacePre
+ ] <<< singleton
