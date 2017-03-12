@@ -8,6 +8,7 @@ import MDL as MDL
 import MDL.Button as Button
 import MDL.Shadow as Shadow
 import MDL.Textfield as Textfield
+import MDL.Checkbox as Checkbox
 import CSS (fromString, marginLeft, marginRight)
 import CSS.Common (class None, auto, none)
 import CSS.Display (display, inlineBlock)
@@ -80,6 +81,23 @@ textarea cmd classes label rows value =
         , HH.label
             [ HP.classes [ Textfield.label ]
             , HP.for "sample2"
+            ]
+            [ HH.text label ]
+        ]
+
+checkbox :: forall a b. (Boolean -> Maybe b) -> Array HH.ClassName -> String -> Boolean -> HH.HTML a b
+checkbox cmd classes label value =
+    HH.label
+        [ HP.classes [ MDL.checkbox, MDL.jsCheckbox, MDL.jsRippleEffect ]
+        ]
+        [ HH.input
+            [ HP.classes [ Checkbox.input ]
+            , HP.type_ InputCheckbox
+            , HE.onChecked cmd
+            , HP.checked value
+            ]
+        , HH.span
+            [ HP.classes [ Checkbox.label ]
             ]
             [ HH.text label ]
         ]

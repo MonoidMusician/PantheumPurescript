@@ -36,7 +36,7 @@ import Halogen.Aff.Util (awaitBody, runHalogenAff)
 import Halogen.HTML.CSS (style)
 import Halogen.VDom.Driver (runUI)
 import Partial.Unsafe (unsafePartial)
-import UIHelpers (textarea, (/>), scale, no_user_select, spacer, zindex, no_pointer_events)
+import UIHelpers
 import Unsafe.Coerce (unsafeCoerce)
 
 newtype Line =
@@ -175,64 +175,50 @@ reform :: Syllable -> ScanBias -> SyllableType
 reform _ IntoDoubleConsonant = Long
 reform (Syllable {stype: Ambiguous _}) LineEnd = Long
 reform (Syllable {stype: Short}) LineEnd = Ambiguous Nothing
+reform (Syllable {value}) Elidable
+    | test r_elision value = Elided
 reform (Syllable {stype: Ambiguous Nothing}) IntoVowel = Ambiguous (Just false)
 reform (Syllable {stype: Ambiguous Nothing}) Elidable = Ambiguous (Just false)
 reform (Syllable {stype: Ambiguous Nothing}) IntoConsonant = Ambiguous (Just true)
-reform (Syllable {value}) Elidable
-    | test r_elision value = Elided
 reform (Syllable {stype}) _ = stype
-{-
-reform syllable bias =
-    case bias of
-        Elidable | test r_elision syllable.value ->
-            Elided
-        IntoDoubleConsonant ->
-            Long
-        _ -> case syllable.stype of
-            Short
-                | bias == LineEnd ->
-                    Ambiguous Nothing
-            Ambiguous Nothing
-                | bias == IntoVowel
-                || bias == Elidable ->
-                    Ambiguous $ Just false
-                | bias == IntoConsonant ->
-                    Ambiguous $ Just true
-            st -> st
--}
 
-inner :: Syllable -> State ScanBias Syllable
-inner syllable@(Syllable {value}) = do
+resimplify :: Boolean -> SyllableType -> SyllableType
+resimplify true (Ambiguous (Just false)) = Short
+resimplify true (Ambiguous (Just true)) = Long
+resimplify _ stype = stype
+
+inner :: Boolean -> Syllable -> State ScanBias Syllable
+inner simplify syllable@(Syllable {value}) = do
     bias <- get
     put (weight value)
-    let stype = reform syllable bias
+    let stype = resimplify simplify $ reform syllable bias
     pure (Syllable { value, stype })
 
-middle :: Array Syllable -> State ScanBias (Array Syllable)
-middle syllables = map Array.reverse $ sequence $ Array.reverse $ map inner syllables
+middle :: Boolean -> Array Syllable -> State ScanBias (Array Syllable)
+middle simplify syllables = map Array.reverse $ sequence $ Array.reverse $ map (inner simplify) syllables
 
-outer :: Res -> State ScanBias Res
-outer (Verb w) = do
+outer :: Boolean -> Res -> State ScanBias Res
+outer simplify (Verb w) = do
     bias <- get
     case bias of
         IntoVowel -> put Elidable
         -- double consonants do not affect preceding word in scansion
         IntoDoubleConsonant -> put IntoConsonant
         _ -> pure unit
-    syllables <- middle w.syllables
+    syllables <- middle simplify w.syllables
     pure $ Verb { syllables, gloss: w.gloss }
-outer (res@Punct "\n") = do
+outer _ (res@Punct "\n") = do
     put LineEnd
     pure res
-outer res = pure res
+outer _ res = pure res
 
-rescan :: Line -> Line
-rescan (Line line) = Line $ ugly2 (map outer line) LineEnd
+rescan :: Boolean -> Line -> Line
+rescan simplify (Line line) = Line $ ugly2 (map (outer simplify) line) LineEnd
 
 
 v :: String
 v =
-    "(?:(?:a[eu]|oe)(?![̄̈])|[aeiouyāēīōūȳ]̄?|[aeiouy]̄|[äëïöüÿ])"
+    "(?:[aeiouy]͡[aeiouyāēīōūȳ]̄?|(?:a[eu]|oe)(?![̄̈])|[aeiouyāēīōūȳ]̄?|[aeiouy]̄|[äëïöüÿ])"
 
 c :: String
 c =
@@ -290,17 +276,17 @@ mksyllable s = Syllable
             Ambiguous Nothing
     }
 
-mkline :: String -> Line
-mkline content =
-    content # mkwords # Array.filter nonempty # Line # rescan
+mkline :: Boolean -> String -> Line
+mkline simplify content =
+    content # mkwords # Array.filter nonempty # Line # rescan simplify
     where
         nonempty (Punct "") = false
         nonempty (Verb { syllables: [] }) = false
         nonempty _ = true
 
-mklines :: String -> Array Line
-mklines content =
-    trim content # String.split (Pattern "\n") # map (trim >>> mkline)
+mklines :: Boolean -> String -> Array Line
+mklines simplify content =
+    trim content # String.split (Pattern "\n") # map (trim >>> mkline simplify)
 
 
 processtext :: (String -> Res) -> (String -> Res) -> String -> Array Res
@@ -322,7 +308,7 @@ prescanned :: Line
 prescanned = Line $ mkwords "arma virumque canō, Trōjae quī prīmus ab ōrīs"
 
 rescanned :: Line
-rescanned = rescan prescanned
+rescanned = rescan false prescanned
 
 
 data Query a
@@ -331,14 +317,15 @@ data Query a
 
 
 type UIState =
-    { on :: Boolean
+    { simplify :: Boolean
     , text :: String
     }
 
 initialState :: UIState
 initialState =
-    { on: false
-    , text: "arma virumque canō, Trōjae quī prīmus ab ōrīs"
+    { simplify: true
+    , text: """arma virumque canō, Trōjae quī prīmus ab ōrīs
+Ītaliam fātō profugus Lāvīni͡aque vēnit"""
     }
 
 ui :: forall eff. H.Component HH.HTML Query Unit Void (Aff (dom :: DOM | eff))
@@ -349,18 +336,19 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
   render state =
     HH.div_
         ([ HH.h2_/>"Pantheum"
+        , checkbox (HE.input_ ToggleState) [] "Simplify scansion marks" state.simplify
         , textarea (HE.input UserInput) [] "Text to scan" 5 state.text
         , HH.br_
-        ] <> (map (display <<< mkline) $ String.split (Pattern "\n") state.text))
+        ] <> map display (mklines state.simplify state.text))
 
   eval :: Query ~> H.ComponentDSL UIState Query Void (Aff (dom :: DOM | eff))
   eval (ToggleState next) = do
-    H.modify (\state -> { on: not state.on, text: "Bye" })
+    H.modify (\state -> { simplify: not state.simplify, text: state.text })
     pure next
   eval (UserInput e next) = do
     let node = unsafeCoerce Event.target e :: HTMLInputElement
     s <- H.liftEff (HInput.value node :: Eff (dom :: DOM | eff) String)
-    H.modify (\state -> { on: state.on, text: s })
+    H.modify (\state -> { simplify: state.simplify, text: s })
     pure next
 
 main :: Eff (HalogenEffects ()) Unit
