@@ -348,11 +348,10 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
   render :: UIState -> H.ComponentHTML Query
   render state =
     HH.div_
-        [ HH.h2_/>"Pantheum"
+        ([ HH.h2_/>"Pantheum"
         , textarea (HE.input UserInput) [] "Text to scan" 5 state.text
         , HH.br_
-        , display $ mkline state.text
-        ]
+        ] <> (map (display <<< mkline) $ String.split (Pattern "\n") state.text))
 
   eval :: Query ~> H.ComponentDSL UIState Query Void (Aff (dom :: DOM | eff))
   eval (ToggleState next) = do
