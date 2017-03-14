@@ -6,3 +6,5 @@
 /output/
 /dist/app.js
 /dist/scansion.js
+
+src/\.DS_Store
