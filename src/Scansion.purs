@@ -11,24 +11,25 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import ArrayState (evalReversedArrayState, sequenceReversed)
-import CSS (ex, fromHexString, nil)
+import ArrayState (evalArrayState, evalReversedArrayState, sequence, sequenceReversed)
+import CSS (CSS, StyleM, ex, fromHexString, nil)
 import CSS.Common (auto)
 import Control.Monad.Aff (Aff)
 import Control.Monad.Eff (Eff)
 import Control.Monad.State (State)
 import Control.Monad.State.Trans (get, put)
+import Control.Plus (empty)
 import DOM (DOM)
 import DOM.Event.Types (Event)
 import DOM.HTML.Types (HTMLInputElement)
 import Data.Array (filter, mapWithIndex) as Array
 import Data.Generic (class Generic, gCompare, gEq, gShow)
 import Data.Int (odd)
-import Data.Maybe (Maybe(..), fromJust)
+import Data.Maybe (Maybe(..), fromJust, fromMaybe)
 import Data.String (Pattern(..), indexOf, joinWith, trim)
 import Data.String (split) as String
-import Data.String.Regex (Regex, test, split)
-import Data.String.Regex.Flags (global, ignoreCase)
+import Data.String.Regex (Regex, replace, split, test)
+import Data.String.Regex.Flags (global, ignoreCase, noFlags)
 import Data.String.Regex.Unsafe (unsafeRegex)
 import Halogen.Aff (HalogenEffects)
 import Halogen.Aff.Util (awaitBody, runHalogenAff)
@@ -59,19 +60,19 @@ instance displayLine :: HalogenDisplay Line where
         HH.div_ [ scanned, raw ]
         where
             raw = HH.span [ style $ zindex 1 ] [ HH.text $ show line_ ]
-            scanned = HH.div [ divstyle ] $ map mapper line
+            scanned = HH.div [ divstyle ] $ evalArrayState (map mapper line) 0.0
             divstyle = style do
-                CSS.height (1.0#ex)
+                CSS.height (1.2#ex)
                 zindex (-1)
                 no_pointer_events
-            mapper (Punct "\n") = HH.br_
-            mapper (Punct s) = spacer $ HH.text s
+            mapper (Punct "\n") = pure HH.br_
+            mapper (Punct s) = pure (spacer $ HH.text s)
             mapper (Verb { syllables, gloss }) =
-                HH.span_ $ map display syllables
+                map HH.span_ $ sequence $ map displaySyllableColored syllables
 
 
-y_mark :: forall a b. HP.IProp ( style :: String | a ) b
-y_mark =
+y_mark :: forall a b. CSS -> HP.IProp ( style :: String | a ) b
+y_mark extra =
     style do
         CSS.color (unsafePartial $ fromJust $ fromHexString "#F50057")
         CSS.Overflow.overflow CSS.Overflow.visible
@@ -80,17 +81,73 @@ y_mark =
         no_user_select
         CSS.margin auto auto auto auto
         CSS.TextAlign.textAlign CSS.TextAlign.center
+        extra
 
 instance displaySyllable :: HalogenDisplay Syllable where
-    display (Syllable { value, stype }) =
-        HH.div
-            [ style do
-                CSS.display CSS.inlineBlock
-                CSS.height nil
-            ]
-            [ HH.div [ y_mark ] [ HH.text $ show stype ]
-            , spacer $ HH.text value
-            ]
+    display = displaySyllableStyled (CSS.height nil)
+
+displaySyllableStyled :: forall a b. CSS -> Syllable -> HH.HTML a b
+displaySyllableStyled extraStyle (Syllable { value, stype }) =
+    HH.div
+        [ style do
+            CSS.display CSS.inlineBlock
+        ]
+        [ HH.div [ y_mark extraStyle ] [ HH.text $ show stype ]
+        , spacer $ HH.text value
+        ]
+
+displaySyllableColored :: forall a b. Syllable -> State Number (HH.HTML a b)
+displaySyllableColored syllable@(Syllable { value, stype }) = do
+    position <- get
+    let incr = case stype of
+            Elided ->
+                0.0
+
+            Long ->
+                1.0
+
+            Ambiguous (Just a) | a ->
+                1.0
+
+            _ ->
+                0.5
+    put (position + incr)
+    let clr =
+            CSS.color $ fromMaybe (CSS.gray) $ CSS.fromHexString $
+                case position of
+                    0.0 ->
+                        "#F50057"
+
+                    2.0 ->
+                        "#D500F9"
+
+                    4.0 ->
+                        "#651FFF"
+
+                    6.0 ->
+                        "#00E5FF"
+
+                    8.0 ->
+                        "#1DE9B6"
+
+                    10.0 ->
+                        "#00E676"
+
+                    11.0 ->
+                        "#2E7D32"
+
+                    10.5 ->
+                        "#FF3D00"
+
+                    11.5 ->
+                        "#FF3D00"
+
+                    12.0 ->
+                        "#FF3D00"
+
+                    _ ->
+                        ""
+    pure $ displaySyllableStyled (clr) syllable
 
 data Res
     = Punct String
@@ -210,7 +267,7 @@ rescan simplify (Line line) = Line rescanned
 
 v :: String
 v =
-    "(?:[aeiouy]͡[aeiouyāēīōūȳ]̄?|(?:a[eu]|oe)(?![̄̈])|[aeiouyāēīōūȳ]̄?|[aeiouy]̄|[äëïöüÿ])"
+    "(?:[aeiouy]͡[aeiouyāēīōūȳ]̄?|(?:a[eu]|oe|eu)(?![̄̈])|[aeiouyāēīōūȳ]̄?|[aeiouy]̄|[äëïöüÿ])"
 
 c :: String
 c =
@@ -234,7 +291,7 @@ r_short =
 
 r_long :: Regex
 r_long =
-    unsafeRegex ("[aeiouy]̄|[āēīōūȳ]|a[eu]|oe|(x|z|" <> c <> c <> ")$") ignoreCase
+    unsafeRegex ("[aeiouy]̄|[āēīōūȳ]|a[eu]|oe|eu|(x|z|" <> c <> c <> ")$") ignoreCase
 
 r_cx :: Regex
 r_cx =
@@ -313,6 +370,12 @@ initialState =
 Ītaliam fātō profugus Lāvīni͡aque vēnit"""
     }
 
+legend :: forall a b. Boolean -> HH.HTML a b
+legend true =
+    HH.div_/>"¯ a long (heavy) syllable, ˘ a short syllable"
+legend false =
+    HH.div_/>"¯ a long (heavy) syllable, ˜ a syllable long by position, ˇ a syllable short by position, ˘ a short syllable"
+
 ui :: forall eff. H.Component HH.HTML Query Unit Void (Aff (dom :: DOM | eff))
 ui = H.component { render, eval, initialState: const initialState, receiver: const Nothing }
   where
@@ -320,11 +383,14 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
   render :: UIState -> H.ComponentHTML Query
   render state =
     HH.div_
-        ([ HH.h2_/>"Pantheum"
+        [ HH.h2_/>"Pantheum: Scansion"
+        , HH.div_ $ map display $ mklines state.simplify state.text
+        , HH.br_
+        , legend state.simplify
         , checkbox (HE.input_ ToggleState) [] "Simplify scansion marks" state.simplify
         , textarea (HE.input UserInput) [] "Text to scan" 5 state.text
         , HH.br_
-        ] <> map display (mklines state.simplify state.text))
+        ]
 
   eval :: Query ~> H.ComponentDSL UIState Query Void (Aff (dom :: DOM | eff))
   eval (ToggleState next) = do
@@ -333,7 +399,12 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
   eval (UserInput e next) = do
     let node = unsafeCoerce Event.target e :: HTMLInputElement
     s <- H.liftEff (HInput.value node :: Eff (dom :: DOM | eff) String)
-    H.modify (\state -> { simplify: state.simplify, text: s })
+    let text = s
+            # replace (unsafeRegex "[\\s\\n]+\\n\\s*|\\s*\\n[\\s\\n]+" global) "\n"
+            # replace (unsafeRegex "\\d+" global) ""
+            # replace (unsafeRegex "'([^']+)'" global) "‘$1’"
+            # replace (unsafeRegex "\"([^\"]+)\"" global) "“$1”"
+    H.modify (\state -> { simplify: state.simplify, text })
     pure next
 
 main :: Eff (HalogenEffects ()) Unit
