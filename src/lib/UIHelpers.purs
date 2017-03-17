@@ -39,7 +39,7 @@ infixr 0 oftext as />
 
 
 
-class Show d <= Display d where
+class Display d where
     display :: forall a b. d -> HH.HTML a b
 
 instance unitLabel :: Display Unit where
