@@ -6,7 +6,7 @@ import Halogen.Aff (HalogenEffects)
 import Halogen.Aff.Util (awaitBody, runHalogenAff)
 import Halogen.VDom.Driver (runUI)
 
-import Example (ui)
+import Table (ui)
 
 main :: Eff (HalogenEffects ()) Unit
 main = runHalogenAff do

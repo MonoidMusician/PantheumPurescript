@@ -14,7 +14,8 @@
     "purescript-aff-coroutines": "^4.0.0",
     "purescript-css": "^2.1.0",
     "purescript-halogen-css": "^5.0.0",
-    "purescript-typelevel": "^2.0.0"
+    "purescript-typelevel": "^2.0.0",
+    "purescript-debug": "^2.0.0"
   },
   "resolutions": {
     "purescript-halogen": "^1.0.0",
