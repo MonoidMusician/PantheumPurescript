@@ -11,7 +11,8 @@ import MDL.Textfield as Textfield
 import MDL.Checkbox as Checkbox
 import CSS (fromString, marginLeft, marginRight)
 import CSS.Common (class None, auto, none)
-import CSS.Display (display, inlineBlock)
+import CSS.Display (inlineBlock)
+import CSS.Display as Display
 import CSS.Geometry (height)
 import CSS.Property (class Val, value)
 import CSS.Size (Size(..), nil)
@@ -35,6 +36,20 @@ infixr 0 single as ><
 oftext :: forall a b. (Array (HH.HTML a b) -> HH.HTML a b) -> String -> HH.HTML a b
 oftext node = single node <<< HH.text
 infixr 0 oftext as />
+
+
+
+class Show d <= Display d where
+    display :: forall a b. d -> HH.HTML a b
+
+instance unitLabel :: Display Unit where
+    display _ = HH.text ""
+
+instance emptyLabel :: Display Void where
+    display _ = HH.text ""
+
+instance identityDisplay :: Display String where
+    display = HH.text
 
 
 button :: forall a b. (MouseEvent -> Maybe b) -> Array HH.ClassName -> String -> HH.HTML a b
@@ -155,6 +170,6 @@ transparent = span [ style hidden ] <<< singleton
 spacer = span [ style do
     hidden
     height nil
-    display inlineBlock
+    Display.display inlineBlock
     textWhitespace whitespacePre
  ] <<< singleton

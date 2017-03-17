@@ -28,6 +28,8 @@ import Global.Unsafe (unsafeStringify)
 import Halogen.HTML.CSS (style)
 import Unsafe.Coerce (unsafeCoerce)
 
+import Pantheum.Latin.Inflection
+
 data Query a
     = ToggleState a
     | UserInput Event a
@@ -40,18 +42,6 @@ type Inflection nRows nCols cell =
 
 type Declension cell = Inflection D5 D2 cell
 type Noun = Declension String
-
-class Show d <= Display d where
-    display :: forall a b. d -> HH.HTML a b
-
-instance unitLabel :: Display Unit where
-    display _ = HH.text ""
-
-instance emptyLabel :: Display Void where
-    display _ = HH.text ""
-
-instance identityDisplay :: Display String where
-    display = HH.text
 
 newtype TableSection sectionT majRT minRT majCT minCT dataT =
     TableSection
@@ -234,54 +224,6 @@ nomen =
         empty
     }
 
-data Degree = Positive | Comparative | Superlative
-instance showDegree :: Show Degree where
-    show Positive = "positive"
-    show Comparative = "comparative"
-    show Superlative = "superlative"
-instance displayDegree :: Display Degree where
-    display = display <<< show
-
-data Person = FirstP | SecondP | ThirdP
-instance showPerson :: Show Person where
-    show FirstP = "1st person"
-    show SecondP = "2nd person"
-    show ThirdP = "3rd person"
-instance displayPerson :: Display Person where
-    display = display <<< show
-
-data Number2 = Singular | Plural
-instance showNumber2 :: Show Number2 where
-    show Singular = "singular"
-    show Plural = "plural"
-instance displayNumber2 :: Display Number2 where
-    display = display <<< show
-
-data Tense = Present | Imperfect | Future | Perfect | Pluperfect | FuturePerfect
-instance showTense :: Show Tense where
-    show Present = "present"
-    show Imperfect = "imperfect"
-    show Future = "future"
-    show Perfect = "perfect"
-    show Pluperfect = "pluperfect"
-    show FuturePerfect = "future-perfect"
-instance displayTense :: Display Tense where
-    display = display <<< show
-
-data Voice = Active | Passive
-instance showVoice :: Show Voice where
-    show Active = "active"
-    show Passive = "passive"
-instance displayVoice :: Display Voice where
-    display = display <<< show
-
-data Mood = Indicative | Subjunctive
-instance showMood :: Show Mood where
-    show Indicative = "indicative"
-    show Subjunctive = "subjunctive"
-instance displayMood :: Display Mood where
-    display = display <<< show
-
 celeriter :: CompoundTable Unit Degree Void Void Void String
 celeriter = simpleVertical
     { rows: [Positive, Comparative, Superlative]
@@ -295,7 +237,7 @@ headerproduct :: forall majT minT. Array majT -> Array minT -> Headers majT minT
 headerproduct major minor =
     map (\label -> { label, sub: minor }) major
 
-getCellVolo :: Mood -> Voice -> Tense -> Number2 -> Person -> String
+getCellVolo :: Mood -> Voice -> Tense -> Numerus -> Person -> String
 getCellVolo Indicative Active Present Singular FirstP = "volo"
 getCellVolo Indicative Active Present Singular SecondP = "vīs"
 getCellVolo Indicative Active Present Singular ThirdP = "volunt"
@@ -310,7 +252,7 @@ getCellVolo Indicative Active Imperfect Plural SecondP = "volēbātis"
 getCellVolo Indicative Active Imperfect Plural ThirdP = "volēbant"
 getCellVolo _ _ _ _ _ = "UNK"
 
-volo :: CompoundTable Mood Voice Tense Number2 Person String
+volo :: CompoundTable Mood Voice Tense Numerus Person String
 volo = CompoundTable ([TableSection
     { section: Indicative
     , rows: headerproduct [Active] [Present, Imperfect]
