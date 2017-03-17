@@ -18,11 +18,11 @@ fromNonEmptyArray = fromNonEmpty Array.cons
 nonEmptyArrayLength :: forall a. NonEmpty Array a -> Int
 nonEmptyArrayLength (_ :| a) = Array.length a + 1
 
-class IsUnit t where
-    isunit :: t -> Boolean
+class IsBlank t where
+    isblank :: t -> Boolean
 
-instance unitIsUnit :: IsUnit Unit where
-    isunit unit = true
+instance unitIsUnit :: IsBlank Unit where
+    isblank unit = true
 
 type Header majT minT =
     { label :: majT
@@ -36,12 +36,12 @@ blankHeaders = { label: unit, sub: unit :| [] } :| []
 simpleHeaders :: forall minT. NonEmpty Array minT -> Headers Unit minT
 simpleHeaders headers = { label: unit, sub: headers } :| []
 
-isSimpleHeaders :: forall majT minT. (IsUnit majT) => Headers majT minT -> Boolean
-isSimpleHeaders = Array.all (\{ label } -> isunit label)
+isSimpleHeaders :: forall majT minT. (IsBlank majT) => Headers majT minT -> Boolean
+isSimpleHeaders = Array.all (\{ label } -> isblank label)
 
-isBlankHeaders :: forall majT minT. (IsUnit majT, IsUnit minT) => Headers majT minT -> Boolean
+isBlankHeaders :: forall majT minT. (IsBlank majT, IsBlank minT) => Headers majT minT -> Boolean
 isBlankHeaders = Array.all (case _ of
-    { label, sub: s :| [] } -> isunit label && isunit s
+    { label, sub: s :| [] } -> isblank label && isblank s
     _ -> false
 )
 
@@ -84,7 +84,7 @@ simpleVertical { rows, getCell } =
             map (\label -> { label: unit, sub: label :| [] }) rows
 
 computeGutterWidth :: forall sectionT majRT minRT majCT minCT dataT
-     . (IsUnit majRT, IsUnit minRT)
+     . (IsBlank majRT, IsBlank minRT)
     => CompoundTable sectionT majRT minRT majCT minCT dataT
     -> Int
 computeGutterWidth (CompoundTable sections) =
@@ -106,10 +106,10 @@ instance displayTable :: (
     Display majCT,
     Display minCT,
     Display dataT,
-    IsUnit majRT,
-    IsUnit minRT,
-    IsUnit majCT,
-    IsUnit minCT
+    IsBlank majRT,
+    IsBlank minRT,
+    IsBlank majCT,
+    IsBlank minCT
 ) => Display (CompoundTable sectionT majRT minRT majCT minCT dataT) where
     display ctable@(CompoundTable [TableSection section]) =
         HH.table_><HH.tbody_ $ map HH.tr_ rows
@@ -140,7 +140,7 @@ instance displayTable :: (
                     HH.td_ >< display $ section.getCell section.section majRow minRow majCol minCol
                 )
             subheaderM =
-                if Array.any (\{ label } -> not $ isunit label) section.cols
+                if Array.any (\{ label } -> not $ isblank label) section.cols
                 then
                     section.cols # fromNonEmptyArray # Array.concatMap (\{ sub } ->
                         map (\h -> HH.th_ >< display h) (fromNonEmptyArray sub)
