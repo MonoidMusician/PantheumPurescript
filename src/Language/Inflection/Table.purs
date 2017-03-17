@@ -28,10 +28,22 @@ type Header majT minT =
     { label :: majT
     , sub :: NonEmpty Array minT
     }
-type Headers majT minT = Array (Header majT minT)
+type Headers majT minT = NonEmpty Array (Header majT minT)
 
-isSimpleHeader :: forall majT minT. (IsUnit majT) => Headers majT minT -> Boolean
-isSimpleHeader = Array.all (\{ label } -> isunit label)
+blankHeaders :: Headers Unit Unit
+blankHeaders = { label: unit, sub: unit :| [] } :| []
+
+simpleHeaders :: forall minT. NonEmpty Array minT -> Headers Unit minT
+simpleHeaders headers = { label: unit, sub: headers } :| []
+
+isSimpleHeaders :: forall majT minT. (IsUnit majT) => Headers majT minT -> Boolean
+isSimpleHeaders = Array.all (\{ label } -> isunit label)
+
+isBlankHeaders :: forall majT minT. (IsUnit majT, IsUnit minT) => Headers majT minT -> Boolean
+isBlankHeaders = Array.all (case _ of
+    { label, sub: s :| [] } -> isunit label && isunit s
+    _ -> false
+)
 
 newtype TableSection sectionT majRT minRT majCT minCT dataT =
     TableSection
@@ -58,13 +70,13 @@ simpleTable { rows, cols, getCell } =
     } # TableSection # Array.singleton # CompoundTable
 
 simpleVertical :: forall minRT dataT.
-    { rows :: Array minRT
+    { rows :: NonEmpty Array minRT
     , getCell :: minRT -> dataT
     } -> CompoundTable Unit Unit minRT Unit Unit dataT
 simpleVertical { rows, getCell } =
     { section: unit
     , rows: fullRows
-    , cols: []
+    , cols: blankHeaders
     , getCell: \_ _ row _ _ -> getCell row
     } # TableSection # Array.singleton # CompoundTable
     where
@@ -72,13 +84,13 @@ simpleVertical { rows, getCell } =
             map (\label -> { label: unit, sub: label :| [] }) rows
 
 computeGutterWidth :: forall sectionT majRT minRT majCT minCT dataT
-     . IsUnit majRT
+     . (IsUnit majRT, IsUnit minRT)
     => CompoundTable sectionT majRT minRT majCT minCT dataT
     -> Int
 computeGutterWidth (CompoundTable sections) =
     sections # map (\(TableSection { rows }) ->
-        if Array.null rows then 0
-        else if isSimpleHeader rows then 1
+        if isBlankHeaders rows then 0
+        else if isSimpleHeaders rows then 1
         else 2
     ) # maximum # fromMaybe 0
 
@@ -95,7 +107,9 @@ instance displayTable :: (
     Display minCT,
     Display dataT,
     IsUnit majRT,
-    IsUnit majCT
+    IsUnit minRT,
+    IsUnit majCT,
+    IsUnit minCT
 ) => Display (CompoundTable sectionT majRT minRT majCT minCT dataT) where
     display ctable@(CompoundTable [TableSection section]) =
         HH.table_><HH.tbody_ $ map HH.tr_ rows
@@ -116,9 +130,9 @@ instance displayTable :: (
                 section.cols # map (\{ label, sub } ->
                     HH.th [ HP.colSpan $ max 1 $ nonEmptyArrayLength sub ] >< display label
                 )
-            header = mcons labelCellM headerMajCols
+            header = mcons labelCellM (fromNonEmptyArray headerMajCols)
             subcol2s =
-                section.cols # Array.concatMap (\{ label, sub } ->
+                section.cols # fromNonEmptyArray # Array.concatMap (\{ label, sub } ->
                     map (Tuple label) (fromNonEmptyArray sub)
                 )
             continue majRow minRow =
@@ -128,10 +142,8 @@ instance displayTable :: (
             subheaderM =
                 if Array.any (\{ label } -> not $ isunit label) section.cols
                 then
-                    section.cols # Array.concatMap (\{ sub } ->
-                        case sub of
-                            _ ->
-                                map (\h -> HH.th_ >< display h) (fromNonEmptyArray sub)
+                    section.cols # fromNonEmptyArray # Array.concatMap (\{ sub } ->
+                        map (\h -> HH.th_ >< display h) (fromNonEmptyArray sub)
                     ) # Just
                 else Nothing
             headerrows =
@@ -139,9 +151,9 @@ instance displayTable :: (
                     Nothing -> [ header ]
                     Just subheader ->
                         [ header, mcons padCellM subheader ]
-            simplerows = isSimpleHeader section.rows
+            simplerows = isSimpleHeaders section.rows
             contentrows =
-                section.rows # Array.concatMap mkrow
+                section.rows # fromNonEmptyArray # Array.concatMap mkrow
             mkrow { label, sub } =
                     let
                         subrows = map (\sublabel -> [ HH.th_ [], HH.th_ [ display sublabel ] ] <> continue label sublabel) $ fromNonEmptyArray sub

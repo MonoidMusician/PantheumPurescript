@@ -55,14 +55,14 @@ nomen =
 
 celeriter :: CompoundTable Unit Unit Degree Unit Unit String
 celeriter = simpleVertical
-    { rows: [Positive, Comparative, Superlative]
+    { rows: (Positive :| [Comparative, Superlative])
     , getCell: case _ of
         Positive -> "celeriter"
         Comparative -> "celerius"
         Superlative -> "celerrimē"
     }
 
-headerproduct :: forall majT minT. Array majT -> NonEmpty Array minT -> Headers majT minT
+headerproduct :: forall majT minT. NonEmpty Array majT -> NonEmpty Array minT -> Headers majT minT
 headerproduct major minor =
     map (\label -> { label, sub: minor }) major
 
@@ -79,13 +79,19 @@ getCellVolo Indicative Active Imperfect Singular ThirdP = "volēbat"
 getCellVolo Indicative Active Imperfect Plural FirstP = "volēbāmus"
 getCellVolo Indicative Active Imperfect Plural SecondP = "volēbātis"
 getCellVolo Indicative Active Imperfect Plural ThirdP = "volēbant"
+getCellVolo Indicative Active Perfect Singular FirstP = "voluī"
+getCellVolo Indicative Active Perfect Singular SecondP = "voluistī"
+getCellVolo Indicative Active Perfect Singular ThirdP = "voluit"
+getCellVolo Indicative Active Perfect Plural FirstP = "voluimus"
+getCellVolo Indicative Active Perfect Plural SecondP = "voluistis"
+getCellVolo Indicative Active Perfect Plural ThirdP = "voluērunt"
 getCellVolo _ _ _ _ _ = "UNK"
 
 volo :: CompoundTable Mood Voice Tense Numerus Person String
 volo = CompoundTable ([TableSection
     { section: Indicative
-    , rows: headerproduct [Active] (Present :| [Imperfect])
-    , cols: headerproduct [Singular, Plural] (FirstP :| [SecondP, ThirdP])
+    , rows: headerproduct (Active :| []) (Present :| [Imperfect, Perfect])
+    , cols: headerproduct (Singular :| [Plural]) (FirstP :| [SecondP, ThirdP])
     , getCell: getCellVolo
     }])
 
