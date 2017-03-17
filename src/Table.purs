@@ -2,6 +2,8 @@ module Table where
 
 import Prelude
 import UIHelpers
+import Pantheum.Inflection.Table
+import Pantheum.Latin.Inflection
 import DOM.Event.Event as Event
 import DOM.HTML.HTMLInputElement as HInput
 import Data.Array as Array
@@ -18,18 +20,12 @@ import Control.Monad.Eff (Eff)
 import DOM (DOM)
 import DOM.Event.Types (Event, MouseEvent)
 import DOM.HTML.Types (HTMLInputElement)
-import Data.Foldable (maximum)
-import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Tuple (Tuple(..))
+import Data.Maybe (Maybe(Nothing))
+import Data.NonEmpty (NonEmpty, (:|))
 import Data.Typelevel.Num (class Nat, D2, D5)
 import Data.Vector (Vec, empty, toArray, (+>))
-import Debug.Trace (spy)
-import Global.Unsafe (unsafeStringify)
 import Halogen.HTML.CSS (style)
 import Unsafe.Coerce (unsafeCoerce)
-
-import Pantheum.Inflection.Table
-import Pantheum.Latin.Inflection
 
 data Query a
     = ToggleState a
@@ -57,7 +53,7 @@ nomen =
         empty
     }
 
-celeriter :: CompoundTable Unit Degree Void Void Void String
+celeriter :: CompoundTable Unit Unit Degree Unit Unit String
 celeriter = simpleVertical
     { rows: [Positive, Comparative, Superlative]
     , getCell: case _ of
@@ -66,7 +62,7 @@ celeriter = simpleVertical
         Superlative -> "celerrimē"
     }
 
-headerproduct :: forall majT minT. Array majT -> Array minT -> Headers majT minT
+headerproduct :: forall majT minT. Array majT -> NonEmpty Array minT -> Headers majT minT
 headerproduct major minor =
     map (\label -> { label, sub: minor }) major
 
@@ -88,8 +84,8 @@ getCellVolo _ _ _ _ _ = "UNK"
 volo :: CompoundTable Mood Voice Tense Numerus Person String
 volo = CompoundTable ([TableSection
     { section: Indicative
-    , rows: headerproduct [Active] [Present, Imperfect]
-    , cols: headerproduct [Singular, Plural] [FirstP, SecondP, ThirdP]
+    , rows: headerproduct [Active] (Present :| [Imperfect])
+    , cols: headerproduct [Singular, Plural] (FirstP :| [SecondP, ThirdP])
     , getCell: getCellVolo
     }])
 
