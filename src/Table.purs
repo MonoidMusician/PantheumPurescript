@@ -297,17 +297,23 @@ headerproduct major minor =
 
 getCellVolo :: Mood -> Voice -> Tense -> Number2 -> Person -> String
 getCellVolo Indicative Active Present Singular FirstP = "volo"
-getCellVolo Indicative Active Present Singular SecondP = "vis"
+getCellVolo Indicative Active Present Singular SecondP = "vīs"
 getCellVolo Indicative Active Present Singular ThirdP = "volunt"
 getCellVolo Indicative Active Present Plural FirstP = "volumus"
 getCellVolo Indicative Active Present Plural SecondP = "vultis"
 getCellVolo Indicative Active Present Plural ThirdP = "volunt"
+getCellVolo Indicative Active Imperfect Singular FirstP = "volēbam"
+getCellVolo Indicative Active Imperfect Singular SecondP = "volēbās"
+getCellVolo Indicative Active Imperfect Singular ThirdP = "volēbat"
+getCellVolo Indicative Active Imperfect Plural FirstP = "volēbāmus"
+getCellVolo Indicative Active Imperfect Plural SecondP = "volēbātis"
+getCellVolo Indicative Active Imperfect Plural ThirdP = "volēbant"
 getCellVolo _ _ _ _ _ = "UNK"
 
 volo :: CompoundTable Mood Voice Tense Number2 Person String
 volo = CompoundTable ([TableSection
     { section: Indicative
-    , rows: headerproduct [Active] [Present]
+    , rows: headerproduct [Active] [Present, Imperfect]
     , cols: headerproduct [Singular, Plural] [FirstP, SecondP, ThirdP]
     , getCell: getCellVolo
     }])
