@@ -11,6 +11,7 @@ import Data.Foldable (maximum)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.NonEmpty (NonEmpty(..), fromNonEmpty, (:|))
 import Data.Tuple (Tuple(..))
+import Debug.Trace (spy)
 
 fromNonEmptyArray :: forall a. NonEmpty Array a -> Array a
 fromNonEmptyArray = fromNonEmpty Array.cons
@@ -99,7 +100,7 @@ mcons :: forall a. Maybe a -> Array a -> Array a
 mcons (Just head) tail = Array.cons head tail
 mcons Nothing tail = tail
 
-instance displayTable :: (
+class (
     Display sectionT,
     Display majRT,
     Display minRT,
@@ -110,11 +111,25 @@ instance displayTable :: (
     IsBlank minRT,
     IsBlank majCT,
     IsBlank minCT
+) <= Table sectionT majRT minRT majCT minCT dataT | sectionT -> majRT minRT majCT minCT
+
+instance displayTable :: (
+    Display sectionT,
+    Display majRT,
+    Display minRT,
+    Display majCT,
+    Display minCT,
+    Display dataT,
+    IsBlank majRT,
+    IsBlank minRT,
+    IsBlank majCT,
+    IsBlank minCT--,
+    --Table sectionT majRT minRT majCT minCT dataT
 ) => Display (CompoundTable sectionT majRT minRT majCT minCT dataT) where
     display ctable@(CompoundTable [TableSection section]) =
         HH.table_><HH.tbody_ $ map HH.tr_ rows
         where
-            gutterWidth = computeGutterWidth ctable
+            gutterWidth = spy $ computeGutterWidth ctable
             cell a
                 | gutterWidth == 0 = Nothing
                 | otherwise =
@@ -140,7 +155,7 @@ instance displayTable :: (
                     HH.td_ >< display $ section.getCell section.section majRow minRow majCol minCol
                 )
             subheaderM =
-                if Array.any (\{ label } -> not $ isblank label) section.cols
+                if not $ isSimpleHeaders section.cols
                 then
                     section.cols # fromNonEmptyArray # Array.concatMap (\{ sub } ->
                         map (\h -> HH.th_ >< display h) (fromNonEmptyArray sub)
@@ -151,13 +166,22 @@ instance displayTable :: (
                     Nothing -> [ header ]
                     Just subheader ->
                         [ header, mcons padCellM subheader ]
-            simplerows = isSimpleHeaders section.rows
+            simplerows = spy $ isSimpleHeaders section.rows
             contentrows =
-                section.rows # fromNonEmptyArray # Array.concatMap mkrow
-            mkrow { label, sub } =
+                section.rows # fromNonEmptyArray # Array.concatMap mkrows
+            mkrows { label, sub } =
                     let
-                        subrows = map (\sublabel -> [ HH.th_ [], HH.th_ [ display sublabel ] ] <> continue label sublabel) $ fromNonEmptyArray sub
-                    in [ [ mkMajRowH $ display label ] ] <> subrows
+                        mkrowheader sublabel =
+                            if simplerows
+                            then [ HH.th_ [ display sublabel ] ]
+                            else [ HH.th_ [], HH.th_ [ display sublabel ] ]
+                        mksubrow sublabel =
+                            mkrowheader sublabel <> continue label sublabel
+                        subrows = map mksubrow $ fromNonEmptyArray sub
+                    in if isblank label
+                    then subrows
+                    else
+                        [ [ mkMajRowH $ display label ] ] <> subrows
             rows = headerrows <> contentrows
     display _ = display "table"
 

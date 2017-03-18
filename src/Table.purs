@@ -20,8 +20,10 @@ import Control.Monad.Eff (Eff)
 import DOM (DOM)
 import DOM.Event.Types (Event, MouseEvent)
 import DOM.HTML.Types (HTMLInputElement)
-import Data.Maybe (Maybe(Nothing))
+import Data.Array ((!!))
+import Data.Maybe (Maybe(Nothing), fromMaybe)
 import Data.NonEmpty (NonEmpty, (:|))
+import Data.String (Pattern(..), split, trim)
 import Data.Typelevel.Num (class Nat, D2, D5)
 import Data.Vector (Vec, empty, toArray, (+>))
 import Halogen.HTML.CSS (style)
@@ -60,6 +62,93 @@ celeriter = simpleVertical
         Positive -> "celeriter"
         Comparative -> "celerius"
         Superlative -> "celerrimē"
+    }
+
+civisGetCell :: Case -> Numerus -> Gender -> String
+civisGetCell Nominative Singular _ = "cīvis"
+civisGetCell Genitive Singular _ = "cīvis"
+civisGetCell Dative Singular _ = "cīvī"
+civisGetCell Accusative Singular _ = "cīvem"
+civisGetCell Ablative Singular _ = "cīve"
+civisGetCell Vocative Singular _ = "cīvis"
+civisGetCell Nominative Plural _ = "cīvēs"
+civisGetCell Genitive Plural _ = "cīvium"
+civisGetCell Dative Plural _ = "cīvibus"
+civisGetCell Accusative Plural _ = "cīvēs"
+civisGetCell Ablative Plural _ = "cīvibus"
+civisGetCell Vocative Plural _ = "cīvēs"
+civisGetCell _ _ _ = "UNK"
+
+civis :: NounTable
+civis = simpleTable
+    { rows: { label: unit, sub: (Nominative :| [Genitive, Dative, Accusative, Ablative]) } :| []
+    , cols: headerproduct (Singular :| [Plural]) (Feminine :| [Masculine])
+    , getCell: const civisGetCell
+    }
+
+bonus_data :: String
+bonus_data = """
+bona	bone	bonum	bonae	bonī	bona
+bona	bonus	bonum	bonae	bonī	bona
+bonam	bonum	bonum	bonās	bonōs	bona
+bonā	bonō	bonō	bonīs	bonīs	bonīs
+bonae	bonō	bonō	bonīs	bonīs	bonīs
+bonae	bonī	bonī	bonārum	bonōrum	bonōrum
+
+melior	melior	melius	meliōrēs	meliōrēs	meliōria
+melior	melior	melius	meliōrēs	meliōrēs	meliōria
+meliōrem	meliōrem	melius	meliōrēs	meliōrēs	meliōria
+meliōrī	meliōrī	meliōrī	meliōribus	meliōribus	meliōribus
+meliōrī	meliōrī	meliōrī	meliōribus	meliōribus	meliōribus
+meliōris	meliōris	meliōris	meliōrium	meliōrium	meliōrium
+
+optima	optime	optimum	optimae	optimī	optima
+optima	optimus	optimum	optimae	optimī	optima
+optimam	optimum	optimum	optimās	optimōs	optima
+optimā	optimō	optimō	optimīs	optimīs	optimīs
+optimae	optimō	optimō	optimīs	optimīs	optimīs
+optimae	optimī	optimī	optimārum	optimōrum	optimōrum
+"""
+
+bonus_parsed :: Array (Array (Array String))
+bonus_parsed =
+    bonus_data
+    # split (Pattern "\n\n")
+    # map (
+        trim
+        >>> split (Pattern "\n")
+        >>> map (split (Pattern "\t"))
+    )
+
+bonusGetCell :: Degree -> Case -> Numerus -> Gender -> String
+bonusGetCell degree case_ number gender = fromMaybe "UNK" do
+    i <- bonus_parsed !! case degree of
+        Positive -> 0
+        Comparative -> 1
+        Superlative -> 2
+    j <- i !! case case_ of
+        Nominative -> 1
+        Genitive -> 5
+        Dative -> 4
+        Accusative -> 2
+        Ablative -> 3
+        Vocative -> 0
+        Locative -> 100
+    k <- j !! ((case number of
+        Singular -> 0
+        Plural -> 1
+    )*3 + (case gender of
+        Feminine -> 0
+        Masculine -> 1
+        Neuter -> 2
+    ))
+    pure k
+
+bonus :: CompoundTable Unit Degree Case Numerus Gender String
+bonus = simpleTable
+    { rows: headerproduct (Positive :| [Comparative, Superlative]) (Nominative :| [Genitive, Dative, Accusative, Ablative])
+    , cols: headerproduct (Singular :| [Plural]) (Feminine :| [Masculine, Neuter])
+    , getCell: bonusGetCell
     }
 
 headerproduct :: forall majT minT. NonEmpty Array majT -> NonEmpty Array minT -> Headers majT minT
@@ -126,12 +215,11 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
 
   render :: State -> H.ComponentHTML Query
   render state =
-    mdiv1 Layout.container
-    ><mdiv [ MDL.layout ]
-      [ mdiv1 Layout.content
-        ><table nomen (input (HE.input UserInput) [] "Form of nomen" >>> (HH.td_><_))
-      , mdiv1 Layout.content>< display volo
-      ]
+    HH.div_
+        [ display volo, display celeriter
+        , display civis, display bonus
+        , table nomen (input (HE.input UserInput) [] "Form of nomen" >>> (HH.td_><_))
+        ]
 
   eval :: Query ~> H.ComponentDSL State Query Void (Aff (dom :: DOM | eff))
   eval (ToggleState next) = do
