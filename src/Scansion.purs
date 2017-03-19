@@ -7,12 +7,13 @@ import CSS.Overflow as CSS.Overflow
 import CSS.TextAlign as CSS.TextAlign
 import DOM.Event.Event as Event
 import DOM.HTML.HTMLInputElement as HInput
+import DOM.HTML.HTMLTextAreaElement as HTextArea
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import ArrayState (evalArrayState, evalReversedArrayState, sequence, sequenceReversed)
-import CSS (CSS, StyleM, ex, fromHexString, nil)
+import CSS (CSS, StyleM, ex, fromHexString, nil, value)
 import CSS.Common (auto)
 import Control.Monad.Aff (Aff)
 import Control.Monad.Eff (Eff)
@@ -21,16 +22,17 @@ import Control.Monad.State.Trans (get, put)
 import Control.Plus (empty)
 import DOM (DOM)
 import DOM.Event.Types (Event)
-import DOM.HTML.Types (HTMLInputElement)
+import DOM.HTML.Types (HTMLInputElement, HTMLTextAreaElement)
 import Data.Array (filter, mapWithIndex) as Array
 import Data.Generic (class Generic, gCompare, gEq, gShow)
 import Data.Int (odd)
 import Data.Maybe (Maybe(..), fromJust, fromMaybe)
-import Data.String (Pattern(..), indexOf, joinWith, trim)
+import Data.String (Pattern(..), indexOf, joinWith, length, splitAt, trim)
 import Data.String (split) as String
 import Data.String.Regex (Regex, replace, split, test)
 import Data.String.Regex.Flags (global, ignoreCase, noFlags)
 import Data.String.Regex.Unsafe (unsafeRegex)
+import Data.Tuple (Tuple(..), fst, snd)
 import Halogen.Aff (HalogenEffects)
 import Halogen.Aff.Util (awaitBody, runHalogenAff)
 import Halogen.HTML.CSS (style)
@@ -52,10 +54,7 @@ instance showLine :: Show Line where
                     --pure (value <> show stype)
                     pure value
 
-class HalogenDisplay displayable where
-    display :: forall a b. displayable -> HH.HTML a b
-
-instance displayLine :: HalogenDisplay Line where
+instance displayLine :: Display Line where
     display line_@(Line line) =
         HH.div_ [ scanned, raw ]
         where
@@ -83,7 +82,7 @@ y_mark extra =
         CSS.TextAlign.textAlign CSS.TextAlign.center
         extra
 
-instance displaySyllable :: HalogenDisplay Syllable where
+instance displaySyllable :: Display Syllable where
     display = displaySyllableStyled (CSS.height nil)
 
 displaySyllableStyled :: forall a b. CSS -> Syllable -> HH.HTML a b
@@ -360,14 +359,17 @@ data Query a
 
 type UIState =
     { simplify :: Boolean
-    , text :: String
+    , text :: TextCursor
     }
 
 initialState :: UIState
 initialState =
     { simplify: true
-    , text: """arma virumque canō, Trōiae quī prīmus ab ōrīs
-Ītaliam fātō profugus Lāvīni͡aque vēnit"""
+    , text: TextCursor
+        { before: """arma virumque canō, Trōiae quī prīmus ab ōrīs"""
+        , selected: "\n"
+        , after: """Ītaliam fātō profugus Lāvīni͡aque vēnit"""
+        }
     }
 
 legend :: forall a b. Boolean -> HH.HTML a b
@@ -375,6 +377,60 @@ legend true =
     HH.div_/>"¯ a long (heavy) syllable, ˘ a short syllable"
 legend false =
     HH.div_/>"¯ a long (heavy) syllable, ˜ a syllable long by position, ˇ a syllable short by position, ˘ a short syllable"
+
+newtype TextCursor = TextCursor
+    { before :: String
+    , selected :: String
+    , after :: String
+    }
+
+splitAtTuple :: Int -> String -> Tuple String String
+splitAtTuple i s = case splitAt i s of
+    Just [first, second] -> Tuple first second
+    _ | i > 0     -> Tuple s ""
+      | otherwise -> Tuple "" s
+
+textCursor :: forall eff. HTMLTextAreaElement -> Eff ( dom :: DOM | eff ) TextCursor
+textCursor element = do
+    value <- HTextArea.value element
+    start <- HTextArea.selectionStart element
+    end <- HTextArea.selectionEnd element
+    let prior_after = splitAtTuple end value
+    let prior = fst prior_after
+    let after = snd prior_after
+    let before_selected = splitAtTuple start prior
+    let before = fst before_selected
+    let selected = snd before_selected
+    pure $ TextCursor
+        { before
+        , selected
+        , after
+        }
+
+setTextCursor :: forall eff. TextCursor -> HTMLTextAreaElement -> Eff ( dom :: DOM | eff ) Unit
+setTextCursor (TextCursor { before, selected, after }) element = do
+    HTextArea.setValue (before <> selected <> after) element
+    let start = length before
+    let end = start + length selected
+    HTextArea.setSelectionStart start element
+    HTextArea.setSelectionEnd end element
+
+tcValue :: TextCursor -> String
+tcValue (TextCursor { before, selected, after }) = before <> selected <> after
+
+select :: TextCursor
+select = TextCursor
+    { before: """arma virumque canō, Trōiae quī prīmus ab ōrīs"""
+    , selected: "\n"
+    , after: """Ītaliam fātō profugus Lāvīni͡aque vēnit"""
+    }
+
+normalize :: String -> String
+normalize =
+    replace (unsafeRegex "[\\s\\n]+\\n\\s*|\\s*\\n[\\s\\n]+" global) "\n"
+    >>> replace (unsafeRegex "\\d+" global) ""
+    >>> replace (unsafeRegex "'([^']+)'" global) "‘$1’"
+    >>> replace (unsafeRegex "\"([^\"]+)\"" global) "“$1”"
 
 ui :: forall eff. H.Component HH.HTML Query Unit Void (Aff (dom :: DOM | eff))
 ui = H.component { render, eval, initialState: const initialState, receiver: const Nothing }
@@ -384,11 +440,11 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
   render state =
     HH.div_
         [ HH.h2_/>"Pantheum: Scansion"
-        , HH.div_ $ map display $ mklines state.simplify state.text
+        , HH.div_ $ map display $ mklines state.simplify (tcValue state.text)
         , HH.br_
         , legend state.simplify
         , checkbox (HE.input_ ToggleState) [] "Simplify scansion marks" state.simplify
-        , textarea (HE.input UserInput) [] "Text to scan" 5 state.text
+        , textarea (HE.input UserInput) [] "Text to scan" 5 (tcValue state.text)
         , HH.br_
         ]
 
@@ -397,13 +453,17 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
     H.modify (\state -> { simplify: not state.simplify, text: state.text })
     pure next
   eval (UserInput e next) = do
-    let node = unsafeCoerce Event.target e :: HTMLInputElement
-    s <- H.liftEff (HInput.value node :: Eff (dom :: DOM | eff) String)
-    let text = s
-            # replace (unsafeRegex "[\\s\\n]+\\n\\s*|\\s*\\n[\\s\\n]+" global) "\n"
-            # replace (unsafeRegex "\\d+" global) ""
-            # replace (unsafeRegex "'([^']+)'" global) "‘$1’"
-            # replace (unsafeRegex "\"([^\"]+)\"" global) "“$1”"
+    let node = unsafeCoerce Event.target e :: HTMLTextAreaElement
+    --s <- H.liftEff (HInput.value node :: Eff (dom :: DOM | eff) String)
+    --let text = normalize s
+    s <- H.liftEff $ textCursor node
+    let text = case s of
+            TextCursor { before, selected, after } -> TextCursor
+                { before: normalize before
+                , selected: normalize selected
+                , after: normalize after
+                }
+    H.liftEff $ setTextCursor text node
     H.modify (\state -> { simplify: state.simplify, text })
     pure next
 
