@@ -13,7 +13,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import ArrayState (evalArrayState, evalReversedArrayState, sequence, sequenceReversed)
-import CSS (CSS, StyleM, ex, fromHexString, nil, value)
+import CSS (CSS, StyleM, canvas, ex, fromHexString, nil, value)
 import CSS.Common (auto)
 import Control.Monad.Aff (Aff)
 import Control.Monad.Eff (Eff)
@@ -21,7 +21,8 @@ import Control.Monad.State (State)
 import Control.Monad.State.Trans (get, put)
 import Control.Plus (empty)
 import DOM (DOM)
-import DOM.Event.Types (Event)
+import DOM.Event.Types (Event, focusEventToEvent, inputEventToEvent, keyboardEventToEvent, mouseEventToEvent)
+import DOM.HTML.HTMLElement (focus)
 import DOM.HTML.Types (HTMLInputElement, HTMLTextAreaElement)
 import Data.Array (filter, mapWithIndex) as Array
 import Data.Generic (class Generic, gCompare, gEq, gShow)
@@ -294,7 +295,7 @@ r_long =
 
 r_cx :: Regex
 r_cx =
-    unsafeRegex ("^((?!h)" <> c <> "|[ij]" <> v <> "|[aeiouy]̄|[äëïöüÿ])") ignoreCase
+    unsafeRegex ("^((?!h)" <> c <> "|[ij]" <> v <> ")") ignoreCase
 
 r_elision :: Regex
 r_elision =
@@ -355,6 +356,7 @@ mkwords content =
 data Query a
     = ToggleState a
     | UserInput Event a
+    | Insert String a
 
 
 type UIState =
@@ -431,6 +433,7 @@ normalize =
     >>> replace (unsafeRegex "\\d+" global) ""
     >>> replace (unsafeRegex "'([^']+)'" global) "‘$1’"
     >>> replace (unsafeRegex "\"([^\"]+)\"" global) "“$1”"
+    >>> replace (unsafeRegex "([aeiouy])\\1" global) "$1\x0304"
 
 ui :: forall eff. H.Component HH.HTML Query Unit Void (Aff (dom :: DOM | eff))
 ui = H.component { render, eval, initialState: const initialState, receiver: const Nothing }
@@ -444,7 +447,17 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
         , HH.br_
         , legend state.simplify
         , checkbox (HE.input_ ToggleState) [] "Simplify scansion marks" state.simplify
-        , textarea (HE.input UserInput) [] "Text to scan" 5 (tcValue state.text)
+        , button (HE.input_ $ Insert "\x0304") [] "Add macron (¯)"
+        , button (HE.input_ $ Insert "\x0361") [] ("Add tie (i\x0361" <> "a)")
+        , HH.textarea
+            [ HP.placeholder "Text to scan"
+            , HP.rows 5
+            , HP.value $ tcValue state.text
+            , HE.onInput $ HE.input UserInput
+            , HE.onClick $ HE.input (UserInput <<< mouseEventToEvent)
+            , HE.onKeyUp $ HE.input (UserInput <<< keyboardEventToEvent)
+            , HE.onBlur $ HE.input (UserInput <<< focusEventToEvent)
+            ]
         , HH.br_
         ]
 
@@ -452,10 +465,19 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
   eval (ToggleState next) = do
     H.modify (\state -> { simplify: not state.simplify, text: state.text })
     pure next
+  eval (Insert insertion next) = do
+    state <- get
+    let text = case state.text of
+            TextCursor { before, selected, after } -> TextCursor
+                { before: before
+                , selected: selected <> insertion
+                , after: after
+                }
+    --H.liftEff $ setTextCursor text node
+    H.modify (\state -> { simplify: state.simplify, text })
+    pure next
   eval (UserInput e next) = do
     let node = unsafeCoerce Event.target e :: HTMLTextAreaElement
-    --s <- H.liftEff (HInput.value node :: Eff (dom :: DOM | eff) String)
-    --let text = normalize s
     s <- H.liftEff $ textCursor node
     let text = case s of
             TextCursor { before, selected, after } -> TextCursor
