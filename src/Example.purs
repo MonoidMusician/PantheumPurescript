@@ -24,6 +24,7 @@ import DOM.HTML.Indexed.InputType (InputType(..))
 import DOM.HTML.Types (HTMLInputElement)
 import Data.Maybe (Maybe(..))
 import Halogen.HTML.CSS (style)
+import UIHelpers ((><))
 import Unsafe.Coerce (unsafeCoerce)
 
 data Query a
@@ -90,39 +91,36 @@ card =
 
 ui :: forall eff. H.Component HH.HTML Query Unit Void (Aff (dom :: DOM | eff))
 ui = H.component { render, eval, initialState: const initialState, receiver: const Nothing }
-  where
+    where
 
-  render :: State -> H.ComponentHTML Query
-  render state =
-    mdiv1 Layout.container <<< Array.singleton $
-      mdiv [ MDL.layout ] <<< Array.singleton $
-        mdiv1 Layout.content <<< Array.singleton $
-            card
-              [ mdiv1 Card.title
-                [ HH.h2 [ HP.classes [ Card.titleText ] ]
-                    [ HH.text "Pantheum" ]
+    render :: State -> H.ComponentHTML Query
+    render state =
+        mdiv1 Layout.container><mdiv [ MDL.layout ]><
+            mdiv1 Layout.content><card
+                [ mdiv1 Card.title
+                    [ HH.h2 [ HP.classes [ Card.titleText ] ]
+                        [ HH.text "Pantheum" ]
+                    ]
+                , mdiv1 Card.supportingText
+                    [ HH.text ("Why not toggle this button? " <> state.text)
+                    , input (HE.input UserInput) [] "Input element" state.text
+                    ]
+                , mdiv [ Card.actions, Card._border ]
+                    [ button
+                        (HE.input_ ToggleState)
+                        [ Button._colored ]
+                        if not state.on
+                            then "Don't push me"
+                            else "I said don't push me!"
+                    ]
                 ]
-              , mdiv1 Card.supportingText
-                  [ HH.text ("Why not toggle this button? " <> state.text)
-                  , input (HE.input UserInput) [] "Input element" state.text
-                  ]
-              , mdiv [ Card.actions, Card._border ]
-                  [ button
-                    (HE.input_ ToggleState)
-                    [ Button._colored ]
-                    (if not state.on
-                        then "Don't push me"
-                        else "I said don't push me!"
-                    )
-                  ]
-              ]
 
-  eval :: Query ~> H.ComponentDSL State Query Void (Aff (dom :: DOM | eff))
-  eval (ToggleState next) = do
-    H.modify (\state -> { on: not state.on, text: "Bye" })
-    pure next
-  eval (UserInput e next) = do
-    let node = unsafeCoerce Event.target e :: HTMLInputElement
-    s <- H.liftEff (HInput.value node :: Eff (dom :: DOM | eff) String)
-    H.modify (\state -> { on: state.on, text: s })
-    pure next
+    eval :: Query ~> H.ComponentDSL State Query Void (Aff (dom :: DOM | eff))
+    eval (ToggleState next) = do
+        H.modify (\state -> { on: not state.on, text: "Bye" })
+        pure next
+    eval (UserInput e next) = do
+        let node = unsafeCoerce Event.target e :: HTMLInputElement
+        s <- H.liftEff (HInput.value node :: Eff (dom :: DOM | eff) String)
+        H.modify (\state -> { on: state.on, text: s })
+        pure next

@@ -112,41 +112,21 @@ displaySyllableColored syllable@(Syllable { value, stype }) = do
             _ ->
                 0.5
     put (position + incr)
-    let clr =
+    let
+        clr =
             CSS.color $ fromMaybe (CSS.gray) $ CSS.fromHexString $
                 case position of
-                    0.0 ->
-                        "#F50057"
-
-                    2.0 ->
-                        "#D500F9"
-
-                    4.0 ->
-                        "#651FFF"
-
-                    6.0 ->
-                        "#00E5FF"
-
-                    8.0 ->
-                        "#1DE9B6"
-
-                    10.0 ->
-                        "#00E676"
-
-                    11.0 ->
-                        "#2E7D32"
-
-                    10.5 ->
-                        "#FF3D00"
-
-                    11.5 ->
-                        "#FF3D00"
-
-                    12.0 ->
-                        "#FF3D00"
-
-                    _ ->
-                        ""
+                    0.0 -> "#F50057"
+                    2.0 -> "#D500F9"
+                    4.0 -> "#651FFF"
+                    6.0 -> "#00E5FF"
+                    8.0 -> "#1DE9B6"
+                    10.0 -> "#00E676"
+                    11.0 -> "#2E7D32"
+                    10.5 -> "#FF3D00"
+                    11.5 -> "#FF3D00"
+                    12.0 -> "#FF3D00"
+                    _ -> ""
     pure $ displaySyllableStyled (clr) syllable
 
 data Res
@@ -175,18 +155,10 @@ data SyllableType
 instance showSyllableType :: Show SyllableType where
     show s =
         case s of
-            Short ->
-                "˘"
-
-            Long ->
-                "¯"
-
-            Elided ->
-                "˙"
-
-            Ambiguous Nothing ->
-                "˟"
-
+            Short -> "˘"
+            Long -> "¯"
+            Elided -> "˙"
+            Ambiguous Nothing -> "˟"
             Ambiguous (Just b)
                 | b -> "˜"
                 | otherwise -> "ˇ"
@@ -437,57 +409,58 @@ normalize =
 
 ui :: forall eff. H.Component HH.HTML Query Unit Void (Aff (dom :: DOM | eff))
 ui = H.component { render, eval, initialState: const initialState, receiver: const Nothing }
-  where
+    where
 
-  render :: UIState -> H.ComponentHTML Query
-  render state =
-    HH.div_
-        [ HH.h2_/>"Pantheum: Scansion"
-        , HH.div_ $ map display $ mklines state.simplify (tcValue state.text)
-        , HH.br_
-        , legend state.simplify
-        , checkbox (HE.input_ ToggleState) [] "Simplify scansion marks" state.simplify
-        , button (HE.input_ $ Insert "\x0304") [] "Add macron (¯)"
-        , button (HE.input_ $ Insert "\x0361") [] ("Add tie (i\x0361" <> "a)")
-        , HH.textarea
-            [ HP.placeholder "Text to scan"
-            , HP.rows 5
-            , HP.value $ tcValue state.text
-            , HE.onInput $ HE.input UserInput
-            , HE.onClick $ HE.input (UserInput <<< mouseEventToEvent)
-            , HE.onKeyUp $ HE.input (UserInput <<< keyboardEventToEvent)
-            , HE.onBlur $ HE.input (UserInput <<< focusEventToEvent)
+    render :: UIState -> H.ComponentHTML Query
+    render state =
+        HH.div_
+            [ HH.h2_/>"Pantheum: Scansion"
+            , HH.div_ $ map display $ mklines state.simplify (tcValue state.text)
+            , HH.br_
+            , legend state.simplify
+            , checkbox (HE.input_ ToggleState) [] "Simplify scansion marks" state.simplify
+            , button (HE.input_ $ Insert "\x0304") [] "Add macron (¯)"
+            , button (HE.input_ $ Insert "\x0361") [] ("Add tie (i\x0361" <> "a)")
+            , HH.textarea
+                [ HP.placeholder "Text to scan"
+                , HP.rows 5
+                , HP.value $ tcValue state.text
+                , HE.onInput $ HE.input UserInput
+                , HE.onClick $ HE.input (UserInput <<< mouseEventToEvent)
+                , HE.onKeyUp $ HE.input (UserInput <<< keyboardEventToEvent)
+                , HE.onBlur $ HE.input (UserInput <<< focusEventToEvent)
+                ]
+            , HH.br_
             ]
-        , HH.br_
-        ]
 
-  eval :: Query ~> H.ComponentDSL UIState Query Void (Aff (dom :: DOM | eff))
-  eval (ToggleState next) = do
-    H.modify (\state -> { simplify: not state.simplify, text: state.text })
-    pure next
-  eval (Insert insertion next) = do
-    state <- get
-    let text = case state.text of
-            TextCursor { before, selected, after } -> TextCursor
-                { before: before
-                , selected: selected <> insertion
-                , after: after
-                }
-    --H.liftEff $ setTextCursor text node
-    H.modify (\state -> { simplify: state.simplify, text })
-    pure next
-  eval (UserInput e next) = do
-    let node = unsafeCoerce Event.target e :: HTMLTextAreaElement
-    s <- H.liftEff $ textCursor node
-    let text = case s of
-            TextCursor { before, selected, after } -> TextCursor
-                { before: normalize before
-                , selected: normalize selected
-                , after: normalize after
-                }
-    H.liftEff $ setTextCursor text node
-    H.modify (\state -> { simplify: state.simplify, text })
-    pure next
+    eval :: Query ~> H.ComponentDSL UIState Query Void (Aff (dom :: DOM | eff))
+    eval (ToggleState next) = do
+        H.modify (\state -> { simplify: not state.simplify, text: state.text })
+        pure next
+    eval (Insert insertion next) = do
+        state <- get
+        let text = case state.text of
+                TextCursor { before, selected, after } -> TextCursor
+                    { before: before
+                    , selected: selected <> insertion
+                    , after: after
+                    }
+        --H.liftEff $ setTextCursor text node
+        H.modify (\state -> { simplify: state.simplify, text })
+        pure next
+    eval (UserInput e next) = do
+        let node = unsafeCoerce Event.target e :: HTMLTextAreaElement
+        s <- H.liftEff $ textCursor node
+        let
+            text = case s of
+                TextCursor { before, selected, after } -> TextCursor
+                    { before: normalize before
+                    , selected: normalize selected
+                    , after: normalize after
+                    }
+        H.liftEff $ setTextCursor text node
+        H.modify (\state -> { simplify: state.simplify, text })
+        pure next
 
 main :: Eff (HalogenEffects ()) Unit
 main = runHalogenAff do

@@ -10,5 +10,5 @@ import Table (ui)
 
 main :: Eff (HalogenEffects ()) Unit
 main = runHalogenAff do
-  body <- awaitBody
-  runUI ui unit body
+    body <- awaitBody
+    runUI ui unit body
