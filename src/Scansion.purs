@@ -2,9 +2,6 @@ module Scansion where
 
 import Prelude
 import UIHelpers
-import Pantheum.Language.Scansion
-import Pantheum.Latin.Scansion (mklines)
-import TextCursor (TextCursor(..), setTextCursor, textCursor, value)
 import DOM.Event.Event as Event
 import Halogen as H
 import Halogen.HTML as HH
@@ -12,10 +9,11 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Control.Monad.Aff (Aff)
 import Control.Monad.Eff (Eff)
-import Control.Monad.State.Trans (get)
+import Control.Monad.State.Trans (get, put)
 import DOM (DOM)
 import DOM.Event.Types (Event, focusEventToEvent, keyboardEventToEvent, mouseEventToEvent)
 import DOM.HTML.Types (HTMLTextAreaElement)
+import DOM.Node.Types (ElementId(..))
 import Data.Maybe (Maybe(..))
 import Data.String.Regex (replace)
 import Data.String.Regex.Flags (global)
@@ -23,6 +21,8 @@ import Data.String.Regex.Unsafe (unsafeRegex)
 import Halogen.Aff (HalogenEffects)
 import Halogen.Aff.Util (awaitBody, runHalogenAff)
 import Halogen.VDom.Driver (runUI)
+import Pantheum.Latin.Scansion (mklines)
+import TextCursor (TextCursor(TextCursor), focusTextCursorById, setTextCursor, textCursor, value)
 import Unsafe.Coerce (unsafeCoerce)
 
 data Query a
@@ -70,6 +70,8 @@ normalize =
 ui :: forall eff. H.Component HH.HTML Query Unit Void (Aff (dom :: DOM | eff))
 ui = H.component { render, eval, initialState: const initialState, receiver: const Nothing }
     where
+    textareaid = "scansion-input"
+    textareaId = ElementId textareaid
 
     render :: UIState -> H.ComponentHTML Query
     render state =
@@ -82,7 +84,8 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
             , button (HE.input_ $ Insert "\x0304") [] "Add macron (¯)"
             , button (HE.input_ $ Insert "\x0361") [] ("Add tie (i\x0361" <> "a)")
             , HH.textarea
-                [ HP.placeholder "Text to scan"
+                [ HP.id_ textareaid
+                , HP.placeholder "Text to scan"
                 , HP.rows 5
                 , HP.value $ value state.text
                 , HE.onInput $ HE.input UserInput
@@ -99,14 +102,20 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
         pure next
     eval (Insert insertion next) = do
         state <- get
-        let text = case state.text of
+        let
+            text = case state.text of
+                TextCursor { before, selected: "", after } -> TextCursor
+                    { before: before <> insertion
+                    , selected: ""
+                    , after: after
+                    }
                 TextCursor { before, selected, after } -> TextCursor
                     { before: before
                     , selected: selected <> insertion
                     , after: after
                     }
-        --H.liftEff $ setTextCursor text node
-        H.modify (\state -> { simplify: state.simplify, text })
+        put { simplify: state.simplify, text }
+        H.liftEff $ focusTextCursorById textareaId text
         pure next
     eval (UserInput e next) = do
         let node = unsafeCoerce Event.target e :: HTMLTextAreaElement

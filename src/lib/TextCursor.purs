@@ -1,13 +1,17 @@
 module TextCursor where
 
 import Prelude
-import Helpers.String (splitAtTuple)
-import Control.Monad.Eff (Eff)
 import DOM.HTML.HTMLTextAreaElement as HTextArea
+import Control.Monad.Eff (Eff)
 import DOM (DOM)
-import DOM.HTML.Types (HTMLTextAreaElement)
-import Data.Tuple (fst, snd)
+import DOM.HTML.HTMLElement (focus)
+import DOM.HTML.Types (HTMLTextAreaElement, htmlTextAreaElementToHTMLElement)
+import DOM.Node.Types (ElementId)
 import Data.String (length)
+import Data.Tuple (fst, snd)
+import Helpers.DOM (doOnElementById)
+import Helpers.String (splitAtTuple)
+import Unsafe.Coerce (unsafeCoerce)
 
 newtype TextCursor = TextCursor
     { before :: String
@@ -17,10 +21,10 @@ newtype TextCursor = TextCursor
 
 textCursor :: forall eff. HTMLTextAreaElement -> Eff ( dom :: DOM | eff ) TextCursor
 textCursor element = do
-    value <- HTextArea.value element
+    val <- HTextArea.value element
     start <- HTextArea.selectionStart element
     end <- HTextArea.selectionEnd element
-    let prior_after = splitAtTuple end value
+    let prior_after = splitAtTuple end val
     let prior = fst prior_after
     let after = snd prior_after
     let before_selected = splitAtTuple start prior
@@ -39,6 +43,15 @@ setTextCursor (TextCursor { before, selected, after }) element = do
     let end = start + length selected
     HTextArea.setSelectionStart start element
     HTextArea.setSelectionEnd end element
+
+focusTextCursor :: forall eff. TextCursor -> HTMLTextAreaElement -> Eff ( dom :: DOM | eff ) Unit
+focusTextCursor tc element = do
+    setTextCursor tc element
+    focus (htmlTextAreaElementToHTMLElement element)
+
+focusTextCursorById :: forall eff. ElementId -> TextCursor -> Eff ( dom :: DOM | eff ) Unit
+focusTextCursorById name tc = do
+    doOnElementById name (focusTextCursor tc <<< unsafeCoerce)
 
 value :: TextCursor -> String
 value (TextCursor { before, selected, after }) = before <> selected <> after
