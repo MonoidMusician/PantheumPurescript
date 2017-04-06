@@ -195,10 +195,11 @@ initialState =
     , text: "Hello"
     }
 
-table :: forall cell nRows nCols a b. (Nat nRows, Nat nCols)
-    => Inflection nRows nCols cell
-    -> (cell -> HH.HTML a b)
-    -> HH.HTML a b
+table :: forall cell nRows nCols a b.
+    Nat nRows => Nat nCols =>
+    Inflection nRows nCols cell ->
+    (cell -> HH.HTML a b) ->
+    HH.HTML a b
 table datable mapper = HH.table_><HH.tbody_ (map HH.tr_ (Array.cons header rows))
     where
       header = Array.cons (HH.th_/> "") $ map (HH.th[style (textAlign leftTextAlign)]/> _) $ toArray datable.colLabels
