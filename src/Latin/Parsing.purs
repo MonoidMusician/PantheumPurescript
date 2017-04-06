@@ -1,11 +1,8 @@
 module Pantheum.Latin.Parsing where
 
 import Prelude
-import Helpers.Regex
-import ArrayState (evalReversedArrayState, sequenceReversed)
-import Data.String (Pattern(..), indexOf, joinWith, trim)
-import Data.String (split) as String
-import Data.String.Regex (Regex, test, split)
+import Helpers.Regex (MatchSet, imatchSet, findall)
+import Data.String.Regex (Regex)
 import Data.String.Regex.Flags (global, ignoreCase)
 import Data.String.Regex.Unsafe (unsafeRegex)
 
@@ -73,3 +70,6 @@ r_elision =
 r_wordbreak :: Regex
 r_wordbreak =
     unsafeRegex ("(?:(?:^|" <> l <> ")" <> l <> "*(?=))") ignoreCase
+
+raw_syllables :: String -> Array String
+raw_syllables = findall r_syllable

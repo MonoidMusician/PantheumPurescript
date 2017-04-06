@@ -202,32 +202,32 @@ table :: forall cell nRows nCols a b.
     HH.HTML a b
 table datable mapper = HH.table_><HH.tbody_ (map HH.tr_ (Array.cons header rows))
     where
-      header = Array.cons (HH.th_/> "") $ map (HH.th[style (textAlign leftTextAlign)]/> _) $ toArray datable.colLabels
-      labels = toArray datable.rowLabels
-      label i = Maybe.fromMaybe "" $ Array.index labels i
-      rows =
-        Array.mapWithIndex rowOf $ toArray datable.cells
-      rowOf i cells =
-        Array.cons (HH.th_/> label i) (map mapper $ toArray cells)
+        header = Array.cons (HH.th_/> "") $ map (HH.th[style (textAlign leftTextAlign)]/> _) $ toArray datable.colLabels
+        labels = toArray datable.rowLabels
+        label i = Maybe.fromMaybe "" $ Array.index labels i
+        rows =
+            Array.mapWithIndex rowOf $ toArray datable.cells
+        rowOf i cells =
+            Array.cons (HH.th_/> label i) (map mapper $ toArray cells)
 
 ui :: forall eff. H.Component HH.HTML Query Unit Void (Aff (dom :: DOM | eff))
 ui = H.component { render, eval, initialState: const initialState, receiver: const Nothing }
-  where
+    where
 
-  render :: State -> H.ComponentHTML Query
-  render state =
-    HH.div_
-        [ display volo, display celeriter
-        , display civis, display bonus
-        , table nomen (input (HE.input UserInput) [] "Form of nomen" >>> (HH.td_><_))
-        ]
+    render :: State -> H.ComponentHTML Query
+    render state =
+        HH.div_
+            [ display volo, display celeriter
+            , display civis, display bonus
+            , table nomen (input (HE.input UserInput) [] "Form of nomen" >>> (HH.td_><_))
+            ]
 
-  eval :: Query ~> H.ComponentDSL State Query Void (Aff (dom :: DOM | eff))
-  eval (ToggleState next) = do
-    H.modify (\state -> { on: not state.on, text: "Bye" })
-    pure next
-  eval (UserInput e next) = do
-    let node = unsafeCoerce Event.target e :: HTMLInputElement
-    s <- H.liftEff (HInput.value node :: Eff (dom :: DOM | eff) String)
-    H.modify (\state -> { on: state.on, text: s })
-    pure next
+    eval :: Query ~> H.ComponentDSL State Query Void (Aff (dom :: DOM | eff))
+    eval (ToggleState next) = do
+        H.modify (\state -> { on: not state.on, text: "Bye" })
+        pure next
+    eval (UserInput e next) = do
+        let node = unsafeCoerce Event.target e :: HTMLInputElement
+        s <- H.liftEff (HInput.value node :: Eff (dom :: DOM | eff) String)
+        H.modify (\state -> { on: state.on, text: s })
+        pure next
