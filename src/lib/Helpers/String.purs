@@ -7,6 +7,6 @@ import Data.String (splitAt)
 
 splitAtTuple :: Int -> String -> Tuple String String
 splitAtTuple i s = case splitAt i s of
-    Just [first, second] -> Tuple first second
+    Just {before, after} -> Tuple before after
     _ | i > 0     -> Tuple s ""
       | otherwise -> Tuple "" s

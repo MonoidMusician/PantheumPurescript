@@ -7,15 +7,14 @@ import DOM.HTML (window)
 import DOM.HTML.Types (htmlDocumentToNonElementParentNode)
 import DOM.HTML.Window (document)
 import DOM.Node.NonElementParentNode (getElementById)
-import DOM.Node.Types (Element, ElementId, Node, elementToNode)
+import DOM.Node.Types (Element, ElementId)
 import Data.Maybe (Maybe, fromMaybe)
-import Data.Nullable (toMaybe)
 
 lookupElement :: forall eff. ElementId -> Eff ( dom :: DOM | eff ) (Maybe Element)
 lookupElement name = do
     win <- window
     doc <- htmlDocumentToNonElementParentNode <$> document win
-    toMaybe <$> getElementById name doc
+    getElementById name doc
 
 doOnElementById :: forall eff. ElementId -> (Element -> Eff ( dom :: DOM | eff ) Unit) -> Eff ( dom :: DOM | eff ) Unit
 doOnElementById name action = do

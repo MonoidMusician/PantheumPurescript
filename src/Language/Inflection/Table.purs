@@ -40,7 +40,7 @@ simpleHeaders headers = { label: unit, sub: headers } :| []
 isSimpleHeaders :: forall majT minT. (IsBlank majT) => Headers majT minT -> Boolean
 isSimpleHeaders = Array.all (\{ label } -> isblank label)
 
-isBlankHeaders :: forall majT minT. (IsBlank majT, IsBlank minT) => Headers majT minT -> Boolean
+isBlankHeaders :: forall majT minT. IsBlank majT => IsBlank minT => Headers majT minT -> Boolean
 isBlankHeaders = Array.all (case _ of
     { label, sub: s :| [] } -> isblank label && isblank s
     _ -> false
@@ -84,9 +84,9 @@ simpleVertical { rows, getCell } =
         fullRows =
             map (\label -> { label: unit, sub: label :| [] }) rows
 
-computeGutterWidth :: forall sectionT majRT minRT majCT minCT dataT
-     . (IsBlank majRT, IsBlank minRT)
-    => CompoundTable sectionT majRT minRT majCT minCT dataT
+computeGutterWidth :: forall sectionT majRT minRT majCT minCT dataT.
+    IsBlank majRT => IsBlank minRT =>
+    CompoundTable sectionT majRT minRT majCT minCT dataT
     -> Int
 computeGutterWidth (CompoundTable sections) =
     sections # map (\(TableSection { rows }) ->

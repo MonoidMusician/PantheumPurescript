@@ -32,9 +32,7 @@ module Data.Vector
   , sortBy
   , reverse
   , mapWithIndex
-  , updateAtI
   , updateAt_
-  , runIntIndexed
   ) where
 
 import Prelude
@@ -45,11 +43,10 @@ import Data.Tuple (Tuple(Tuple))
 import Data.Typelevel.Num (class Min, class Sub, class LtEq, class Pred, class Lt)
 import Data.Typelevel.Num.Ops (class Add, class Succ)
 import Data.Typelevel.Num.Reps (D1, D0)
-import Data.Typelevel.Num.Sets (class Nat, class Pos, reifyInt, toInt)
+import Data.Typelevel.Num.Sets (class Nat, class Pos, toInt)
 import Data.Typelevel.Undefined (undefined)
 import Data.Unfoldable (class Unfoldable)
-import Partial.Unsafe (unsafeCrashWith, unsafePartial)
-import Unsafe.Coerce (unsafeCoerce)
+import Partial.Unsafe (unsafePartial)
 
 -- | `Vec s a` is an array with a fixed size `s` defined at the type level.
 newtype Vec s a = Vec (Array a)

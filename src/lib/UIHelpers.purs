@@ -10,17 +10,17 @@ import MDL.Shadow as Shadow
 import MDL.Textfield as Textfield
 import MDL.Checkbox as Checkbox
 import CSS (fromString, marginLeft, marginRight)
-import CSS.Common (class None, auto, none)
+import CSS.Common (auto)
 import CSS.Display (inlineBlock)
 import CSS.Display as Display
 import CSS.Geometry (height)
-import CSS.Property (class Val, value)
+import CSS.Property (class Val)
 import CSS.Size (Size(..), nil)
 import CSS.Stylesheet (CSS, key)
 import CSS.Text.Whitespace (textWhitespace, whitespacePre)
 import CSS.Transform (Transformation(..), transform, translate)
 import Data.Array (singleton)
-import Data.Int (fromNumber, toNumber)
+import Data.Int (toNumber)
 import Halogen.HTML (span)
 import Halogen.HTML.CSS (style)
 import DOM.Event.Types (Event, MouseEvent)
