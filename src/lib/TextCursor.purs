@@ -8,7 +8,7 @@ import DOM.HTML.HTMLElement (focus)
 import DOM.HTML.Types (HTMLTextAreaElement, htmlTextAreaElementToHTMLElement)
 import DOM.Node.Types (ElementId)
 import Data.String (length)
-import Data.Tuple (fst, snd)
+import Data.Tuple (Tuple(..), fst, snd)
 import Helpers.DOM (doOnElementById)
 import Helpers.String (splitAtTuple)
 import Unsafe.Coerce (unsafeCoerce)
@@ -24,12 +24,8 @@ textCursor element = do
     val <- HTextArea.value element
     start <- HTextArea.selectionStart element
     end <- HTextArea.selectionEnd element
-    let prior_after = splitAtTuple end val
-    let prior = fst prior_after
-    let after = snd prior_after
-    let before_selected = splitAtTuple start prior
-    let before = fst before_selected
-    let selected = snd before_selected
+    let (Tuple prior after) = splitAtTuple end val
+    let (Tuple before selected) = splitAtTuple start prior
     pure $ TextCursor
         { before
         , selected

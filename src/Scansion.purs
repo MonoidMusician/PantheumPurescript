@@ -119,14 +119,12 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
         pure next
     eval (UserInput e next) = do
         let node = unsafeCoerce Event.target e :: HTMLTextAreaElement
-        s <- H.liftEff $ textCursor node
-        let
-            text = case s of
-                TextCursor { before, selected, after } -> TextCursor
-                    { before: normalize before
-                    , selected: normalize selected
-                    , after: normalize after
-                    }
+        TextCursor { before, selected, after } <- H.liftEff $ textCursor node
+        let text = TextCursor
+                { before: normalize before
+                , selected: normalize selected
+                , after: normalize after
+                }
         H.liftEff $ setTextCursor text node
         H.modify (\state -> { simplify: state.simplify, text })
         pure next
