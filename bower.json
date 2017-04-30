@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "purescript-halogen-template",
+  "name": "pantheum-purescript",
   "ignore": [
     "**/.*",
     "node_modules",
@@ -9,16 +9,13 @@
     "dist"
   ],
   "dependencies": {
-    "purescript-console": "^2.0.0",
-    "purescript-halogen": "^0.12.0",
-    "purescript-aff-coroutines": "^4.0.0",
-    "purescript-css": "^2.1.0",
-    "purescript-halogen-css": "^5.0.0",
-    "purescript-typelevel": "^2.0.0",
-    "purescript-debug": "^2.0.0"
-  },
-  "resolutions": {
-    "purescript-halogen": "^1.0.0",
-    "purescript-halogen-css": "5.0.0-rc.2"
+    "purescript-console": "^3.0.0",
+    "purescript-halogen": "^2.0.0",
+    "purescript-aff-coroutines": "^5.0.0",
+    "purescript-css": "^3.0.0",
+    "purescript-halogen-css": "^6.0.0",
+    "purescript-debug": "^3.0.0",
+    "purescript-aff": "^3.0.0",
+    "purescript-sized-vectors": "^2.0.0"
   }
 }

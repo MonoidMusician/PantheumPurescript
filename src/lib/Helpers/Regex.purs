@@ -7,6 +7,7 @@ import Data.String.Regex (Regex, test, split)
 import Data.String.Regex.Flags (RegexFlags(..), global, ignoreCase)
 import Data.String.Regex.Unsafe (unsafeRegex)
 
+foreign import findall :: Regex -> String -> Array String
 foreign import escape :: String -> String
 
 type MatchSet =
