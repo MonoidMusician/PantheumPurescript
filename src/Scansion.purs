@@ -22,8 +22,8 @@ import Halogen.Aff (HalogenEffects)
 import Halogen.Aff.Util (awaitBody, runHalogenAff)
 import Halogen.VDom.Driver (runUI)
 import Pantheum.Latin.Scansion (mklines)
-import TextCursor (TextCursor(TextCursor), focusTextCursorById, setTextCursor, textCursor, concat)
-import TextCursor.Element (TextCursorElement(..))
+import TextCursor (TextCursor(TextCursor), concat)
+import TextCursor.Element (TextCursorElement(..), focusTextCursorById, setTextCursor, textCursor)
 import Unsafe.Coerce (unsafeCoerce)
 
 data Query a

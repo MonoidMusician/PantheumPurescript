@@ -3,15 +3,23 @@ module TextCursor.Element
     , value, setValue
     , selectionStart, setSelectionStart
     , selectionEnd, setSelectionEnd
+    , textCursor, setTextCursor
+    , focusTextCursor, focusTextCursorById
     ) where
 
 import Prelude
-import TextCursor.Element.Type (TextCursorElement(..))
 import DOM.HTML.HTMLInputElement as HInput
 import DOM.HTML.HTMLTextAreaElement as HTextArea
 import Control.Monad.Eff (Eff)
 import DOM (DOM)
+import DOM.HTML.HTMLElement (focus)
 import DOM.HTML.Types (HTMLInputElement, HTMLTextAreaElement)
+import DOM.Node.Types (ElementId)
+import Data.String (length)
+import Data.Tuple (Tuple(..))
+import Helpers.String (splitAtTuple)
+import TextCursor (TextCursor(..), concat)
+import TextCursor.Element.Type (TextCursorElement(..), htmlTextCursorElementToHTMLElement, lookupValidateAndDo)
 
 getter
     :: forall a.
@@ -46,3 +54,33 @@ selectionEnd = getter HInput.selectionEnd HTextArea.selectionEnd
 
 setSelectionEnd :: forall eff. Int -> TextCursorElement -> Eff ( dom :: DOM | eff ) Unit
 setSelectionEnd = setter HInput.setSelectionEnd HTextArea.setSelectionEnd
+
+textCursor :: forall eff. TextCursorElement -> Eff ( dom :: DOM | eff ) TextCursor
+textCursor element = do
+    val <- value element
+    start <- selectionStart element
+    end <- selectionEnd element
+    let (Tuple prior after) = splitAtTuple end val
+    let (Tuple before selected) = splitAtTuple start prior
+    pure $ TextCursor
+        { before
+        , selected
+        , after
+        }
+
+setTextCursor :: forall eff. TextCursor -> TextCursorElement -> Eff ( dom :: DOM | eff ) Unit
+setTextCursor (tc@TextCursor { before, selected, after }) element = do
+    setValue (concat tc) element
+    let start = length before
+    let end = start + length selected
+    setSelectionStart start element
+    setSelectionEnd end element
+
+focusTextCursor :: forall eff. TextCursor -> TextCursorElement -> Eff ( dom :: DOM | eff ) Unit
+focusTextCursor tc element = do
+    setTextCursor tc element
+    focus (htmlTextCursorElementToHTMLElement element)
+
+focusTextCursorById :: forall eff. ElementId -> TextCursor -> Eff ( dom :: DOM | eff ) Unit
+focusTextCursorById name tc = do
+    lookupValidateAndDo name (focusTextCursor tc)
