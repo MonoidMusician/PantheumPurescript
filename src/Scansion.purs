@@ -1,8 +1,7 @@
 module Scansion where
 
-import Prelude
-import UIHelpers
-import DOM.Event.Event as Event
+import Prelude hiding (join)
+import UIHelpers (button, checkbox, display, (/>))
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -12,7 +11,6 @@ import Control.Monad.Eff (Eff)
 import Control.Monad.State.Trans (get)
 import DOM (DOM)
 import DOM.Event.Types (Event, focusEventToEvent, keyboardEventToEvent, mouseEventToEvent)
-import DOM.HTML.Types (HTMLTextAreaElement)
 import DOM.Node.Types (ElementId(..))
 import Data.Lens (lens, modifying)
 import Data.Lens.Types (Lens')
@@ -24,9 +22,13 @@ import Halogen.Aff (HalogenEffects)
 import Halogen.Aff.Util (awaitBody, runHalogenAff)
 import Halogen.VDom.Driver (runUI)
 import Pantheum.Latin.Scansion (mklines)
-import TextCursor (TextCursor(TextCursor), concat, insert, mapAll)
-import TextCursor.Element (TextCursorElement(..), focusTextCursorById, modifyTextCursor, modifyTextCursorST, setTextCursor, textCursor)
-import Unsafe.Coerce (unsafeCoerce)
+import TextCursor (TextCursor(TextCursor), join, insert, mapAll)
+import TextCursor.Element
+    ( focusTextCursorById
+    , modifyTextCursorST
+    , readEventTarget
+    , validate'
+    )
 
 data Query a
     = ToggleState a
@@ -86,7 +88,7 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
     render state =
         HH.div_
             [ HH.h2_/>"Pantheum: Scansion"
-            , HH.div_ $ map display $ mklines state.simplify (concat state.text)
+            , HH.div_ $ map display $ mklines state.simplify (join state.text)
             , HH.br_
             , legend state.simplify
             , checkbox (HE.input_ ToggleState) [] "Simplify scansion marks" state.simplify
@@ -96,7 +98,7 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
                 [ HP.id_ textareaid
                 , HP.placeholder "Text to scan"
                 , HP.rows 5
-                , HP.value $ concat state.text
+                , HP.value $ join state.text
                 , HE.onInput $ HE.input UserInput
                 , HE.onClick $ HE.input (UserInput <<< mouseEventToEvent)
                 , HE.onKeyUp $ HE.input (UserInput <<< keyboardEventToEvent)
@@ -111,12 +113,14 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
         pure next
     eval (Insert insertion next) = do
         modifying textL (insert insertion)
-        text <- _.text <$> get
+        text <- get <#> _.text
         H.liftEff $ focusTextCursorById textareaId text
         pure next
     eval (UserInput e next) = do
-        let node = TextArea $ unsafeCoerce Event.target e :: HTMLTextAreaElement
-        modifyTextCursorST textL (mapAll normalize) node
+        elm <- H.liftEff $ validate' $ readEventTarget e
+        case elm of
+            Just el -> modifyTextCursorST textL (mapAll normalize) el
+            _ -> pure unit
         pure next
 
 main :: Eff (HalogenEffects ()) Unit

@@ -1,26 +1,35 @@
 module TextCursor.Element.Type
     ( TextCursorElement(..)
     , htmlTextCursorElementToHTMLElement
-    , read, readAndValidate
+    , read, readEventTarget
+    , validate, validate'
     , lookupAndValidate
     , lookupValidateAndDo
     ) where
 
-import Control.Alternative ((<|>))
-import Control.Monad.Eff (Eff)
-import Control.Monad.Except (runExcept)
-import DOM (DOM)
-import DOM.HTML (window)
-import DOM.HTML.HTMLInputElement (type_)
-import DOM.HTML.Types (HTMLElement, HTMLInputElement, HTMLTextAreaElement, htmlDocumentToNonElementParentNode, htmlInputElementToHTMLElement, htmlTextAreaElementToHTMLElement, readHTMLInputElement, readHTMLTextAreaElement)
-import DOM.HTML.Window (document)
-import DOM.Node.NonElementParentNode (getElementById)
-import DOM.Node.Types (ElementId)
-import Data.Array (elem)
-import Data.Either (Either(..))
-import Data.Foreign (F, Foreign, toForeign)
+import Prelude (Unit, bind, map, pure, unit, (<$>), (<<<))
 import Data.Maybe (Maybe(..))
-import Prelude (Unit, bind, map, pure, unit, (<$>))
+import Data.Either (Either(..))
+import Data.Array (elem)
+import Data.Foreign (F, Foreign, toForeign)
+import Control.Alternative ((<|>))
+import Control.Monad.Except (runExcept)
+import Control.Monad.Eff (Eff)
+import DOM (DOM)
+import DOM.Event.Event (Event, target)
+import DOM.HTML.Types
+    ( HTMLElement, HTMLInputElement, HTMLTextAreaElement
+    , htmlDocumentToNonElementParentNode
+    , htmlInputElementToHTMLElement
+    , htmlTextAreaElementToHTMLElement
+    , readHTMLInputElement
+    , readHTMLTextAreaElement
+    )
+import DOM.HTML (window)
+import DOM.HTML.Window (document)
+import DOM.HTML.HTMLInputElement (type_)
+import DOM.Node.Types (ElementId)
+import DOM.Node.NonElementParentNode (getElementById)
 
 data TextCursorElement = Input HTMLInputElement | TextArea HTMLTextAreaElement
 
@@ -31,8 +40,12 @@ htmlTextCursorElementToHTMLElement (TextArea e) = htmlTextAreaElementToHTMLEleme
 read :: Foreign -> F TextCursorElement
 read e = ta <|> i
     where
-        ta = map TextArea (readHTMLTextAreaElement e)
-        i = map Input (readHTMLInputElement e)
+        -- prefer TextArea, which needs no validation
+        ta = TextArea <$> readHTMLTextAreaElement e
+        i = Input <$> readHTMLInputElement e
+
+readEventTarget :: Event -> F TextCursorElement
+readEventTarget = read <<< toForeign <<< target
 
 validate :: forall eff. TextCursorElement -> Eff ( dom :: DOM | eff ) (Maybe TextCursorElement)
 validate = case _ of
@@ -48,9 +61,9 @@ validate = case _ of
             where
                 whitelist = ["", "text", "email", "search", "url"]
 
-readAndValidate :: forall eff. Foreign -> Eff ( dom :: DOM | eff ) (Maybe TextCursorElement)
-readAndValidate f =
-    case runExcept (read f) of
+validate' :: forall eff. F TextCursorElement -> Eff ( dom :: DOM | eff ) (Maybe TextCursorElement)
+validate' f =
+    case runExcept f of
         Left _ -> pure Nothing
         Right e -> validate e
 
@@ -61,7 +74,7 @@ lookupAndValidate name = do
     elemm <- getElementById name doc
     case elemm of
         Nothing -> pure Nothing
-        Just e -> readAndValidate (toForeign e)
+        Just e -> validate' (read (toForeign e))
 
 lookupValidateAndDo :: forall eff. ElementId -> (TextCursorElement -> Eff ( dom :: DOM | eff ) Unit) -> Eff ( dom :: DOM | eff ) Unit
 lookupValidateAndDo name action = do

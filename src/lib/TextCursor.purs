@@ -1,20 +1,15 @@
 module TextCursor
     ( TextCursor(..)
     , beforeL, selectedL, afterL
-    , concat, insert, mapAll
+    , selectAll, atStart, atEnd
+    , empty, join
+    , insert, mapAll
     ) where
 
-import Prelude
-import Data.Lens.Iso.Newtype (_Newtype)
-import Data.Lens.Lens (lens)
-import Data.Lens.Types (Lens')
+import Prelude hiding (join)
 import Data.Newtype (class Newtype)
-
-type TCRec =
-    { before :: String
-    , selected :: String
-    , after :: String
-    }
+import Data.Lens (Lens', lens)
+import Data.Lens.Iso.Newtype (_Newtype)
 
 newtype TextCursor = TextCursor
     { before :: String
@@ -23,6 +18,9 @@ newtype TextCursor = TextCursor
     }
 
 derive instance textCursorNewtype :: Newtype TextCursor _
+
+empty :: TextCursor
+empty = TextCursor { before: "", selected: "", after: "" }
 
 beforeL :: Lens' TextCursor String
 beforeL = _Newtype <<< lens (_.before) (\o b -> o { before = b })
@@ -40,8 +38,29 @@ mapAll f (TextCursor { before, selected, after }) = TextCursor
     , after: f after
     }
 
-concat :: TextCursor -> String
-concat (TextCursor { before, selected, after }) = before <> selected <> after
+atStart :: TextCursor -> TextCursor
+atStart tc = TextCursor
+    { before: ""
+    , selected: ""
+    , after: join tc
+    }
+
+selectAll :: TextCursor -> TextCursor
+selectAll tc = TextCursor
+    { before: ""
+    , selected: join tc
+    , after: ""
+    }
+
+atEnd :: TextCursor -> TextCursor
+atEnd tc = TextCursor
+    { before: join tc
+    , selected: ""
+    , after: ""
+    }
+
+join :: TextCursor -> String
+join (TextCursor { before, selected, after }) = before <> selected <> after
 
 insert :: String -> TextCursor -> TextCursor
 insert insertion = case _ of

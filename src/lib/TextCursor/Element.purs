@@ -1,64 +1,36 @@
 module TextCursor.Element
     ( module TextCursor.Element.Type
-    , value, setValue
-    , selectionStart, setSelectionStart
-    , selectionEnd, setSelectionEnd
+    , module TextCursor.Element.HTML
     , textCursor, setTextCursor
     , modifyTextCursor, modifyTextCursorST
     , focusTextCursor, focusTextCursorById
     ) where
 
-import Prelude
-import DOM.HTML.HTMLInputElement as HInput
-import DOM.HTML.HTMLTextAreaElement as HTextArea
+import Prelude hiding (join)
+import Data.Tuple (Tuple(Tuple))
+import Data.String (length)
+import Data.Lens (Lens', (.~))
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Class (class MonadEff, liftEff)
 import Control.Monad.State.Class (class MonadState, modify)
 import DOM (DOM)
-import DOM.HTML.HTMLElement (focus)
-import DOM.HTML.Types (HTMLInputElement, HTMLTextAreaElement)
 import DOM.Node.Types (ElementId)
-import Data.Lens ((.~))
-import Data.Lens.Types (Lens')
-import Data.String (length)
-import Data.Tuple (Tuple(..))
+import DOM.HTML.HTMLElement (focus)
 import Helpers.String (splitAtTuple)
-import TextCursor (TextCursor(..), concat)
-import TextCursor.Element.Type (TextCursorElement(..), htmlTextCursorElementToHTMLElement, lookupValidateAndDo)
-
-getter
-    :: forall a.
-    (HTMLInputElement -> a) ->
-    (HTMLTextAreaElement -> a) ->
-    TextCursorElement -> a
-getter f _ (Input e) = f e
-getter _ g (TextArea e) = g e
-
-setter
-    :: forall a b.
-    (b -> HTMLInputElement -> a) ->
-    (b -> HTMLTextAreaElement -> a) ->
-    b -> TextCursorElement -> a
-setter f _ v (Input e) = f v e
-setter _ g v (TextArea e) = g v e
-
-value :: forall eff. TextCursorElement -> Eff ( dom :: DOM | eff ) String
-value = getter HInput.value HTextArea.value
-
-setValue :: forall eff. String -> TextCursorElement -> Eff ( dom :: DOM | eff ) Unit
-setValue = setter HInput.setValue HTextArea.setValue
-
-selectionStart :: forall eff. TextCursorElement -> Eff ( dom :: DOM | eff ) Int
-selectionStart = getter HInput.selectionStart HTextArea.selectionStart
-
-setSelectionStart :: forall eff. Int -> TextCursorElement -> Eff ( dom :: DOM | eff ) Unit
-setSelectionStart = setter HInput.setSelectionStart HTextArea.setSelectionStart
-
-selectionEnd :: forall eff. TextCursorElement -> Eff ( dom :: DOM | eff ) Int
-selectionEnd = getter HInput.selectionEnd HTextArea.selectionEnd
-
-setSelectionEnd :: forall eff. Int -> TextCursorElement -> Eff ( dom :: DOM | eff ) Unit
-setSelectionEnd = setter HInput.setSelectionEnd HTextArea.setSelectionEnd
+import TextCursor (TextCursor(..), join)
+import TextCursor.Element.Type
+    ( TextCursorElement(..)
+    , htmlTextCursorElementToHTMLElement
+    , read, readEventTarget
+    , validate, validate'
+    , lookupAndValidate
+    , lookupValidateAndDo
+    )
+import TextCursor.Element.HTML
+    ( value, setValue
+    , selectionStart, setSelectionStart
+    , selectionEnd, setSelectionEnd
+    )
 
 textCursor :: forall eff. TextCursorElement -> Eff ( dom :: DOM | eff ) TextCursor
 textCursor element = do
@@ -75,7 +47,7 @@ textCursor element = do
 
 setTextCursor :: forall eff. TextCursor -> TextCursorElement -> Eff ( dom :: DOM | eff ) Unit
 setTextCursor (tc@TextCursor { before, selected, after }) element = do
-    setValue (concat tc) element
+    setValue (join tc) element
     let start = length before
     let end = start + length selected
     setSelectionStart start element
