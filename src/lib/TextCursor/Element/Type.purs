@@ -7,10 +7,11 @@ module TextCursor.Element.Type
     , lookupValidateAndDo
     ) where
 
-import Prelude (Unit, bind, map, pure, unit, (<$>), (<<<))
+import Prelude (Unit, bind, map, pure, (<$>), (<<<), (>>=))
 import Data.Maybe (Maybe(..))
 import Data.Either (Either(..))
 import Data.Array (elem)
+import Data.Traversable (traverse_)
 import Data.Foreign (F, Foreign, toForeign)
 import Control.Alternative ((<|>))
 import Control.Monad.Except (runExcept)
@@ -50,7 +51,7 @@ readEventTarget = read <<< toForeign <<< target
 validate :: forall eff. TextCursorElement -> Eff ( dom :: DOM | eff ) (Maybe TextCursorElement)
 validate = case _ of
     tae@(TextArea e) -> pure (Just tae)
-    Input e -> map {- Eff -} (map {- Maybe -} Input) (validateInput e)
+    Input e -> map Input <$> validateInput e
     where
         validateInput :: HTMLInputElement -> Eff ( dom :: DOM | eff ) (Maybe HTMLInputElement)
         validateInput e = do
@@ -71,14 +72,8 @@ lookupAndValidate :: forall eff. ElementId -> Eff ( dom :: DOM | eff ) (Maybe Te
 lookupAndValidate name = do
     win <- window
     doc <- htmlDocumentToNonElementParentNode <$> document win
-    elemm <- getElementById name doc
-    case elemm of
-        Nothing -> pure Nothing
-        Just e -> validate' (read (toForeign e))
+    getElementById name doc >>= validate' <<< read <<< toForeign
 
 lookupValidateAndDo :: forall eff. ElementId -> (TextCursorElement -> Eff ( dom :: DOM | eff ) Unit) -> Eff ( dom :: DOM | eff ) Unit
-lookupValidateAndDo name action = do
-    textcursorm <- lookupAndValidate name
-    case textcursorm of
-        Nothing -> pure unit
-        Just tc -> action tc
+lookupValidateAndDo name action =
+    lookupAndValidate name >>= traverse_ action
