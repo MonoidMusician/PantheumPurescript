@@ -41,8 +41,8 @@ selectedL = _Newtype <<< lens (_.selected) (\o s -> o { selected = s })
 afterL :: Lens' TextCursor String
 afterL = _Newtype <<< lens (_.after) (\o a -> o { after = a })
 
--- | Map all three fields of the TextCursor, performing a replacement or other
--- | transformation such as normalization.
+-- | Map all three fields of the `TextCursor` with an endomorphism, performing
+-- | a replacement or other transformation such as normalization.
 mapAll :: (String -> String) -> TextCursor -> TextCursor
 mapAll f (TextCursor { before, selected, after }) = TextCursor
     { before: f before

@@ -38,6 +38,8 @@ import DOM.Node.NonElementParentNode (getElementById)
 -- |
 -- | Note that not all `HTMLInputElement` nodes are valid, as they must contain
 -- | text content. See `validate` for specifics.
+-- |
+-- | Common operations are defined in `TextCursor.Element.HTML`.
 data TextCursorElement = Input HTMLInputElement | TextArea HTMLTextAreaElement
 
 -- | Convert a `TextCursorElement` to a generic `HTMLElement`. Useful for

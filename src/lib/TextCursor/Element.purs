@@ -56,14 +56,14 @@ setTextCursor (tc@TextCursor { before, selected, after }) element = do
     setSelectionStart start element
     setSelectionEnd end element
 
--- | Modifies the `TextCursor` on an element through the given morphism.
+-- | Modifies the `TextCursor` on an element through the given endomorphism.
 modifyTextCursor :: forall eff. (TextCursor -> TextCursor) -> TextCursorElement -> Eff ( dom :: DOM | eff ) Unit
 modifyTextCursor f element = do
     tc <- f <$> textCursor element
     setTextCursor tc element
 
 -- | Modifies the `TextCursor` on an element as well as setting the result in a
--- | State+Eff monad. Useful for components processing input events!
+-- | State+Eff monad via a lens. Useful for components processing input events!
 modifyTextCursorST :: forall eff m s.
     MonadState s m =>
     MonadEff ( dom :: DOM | eff ) m =>

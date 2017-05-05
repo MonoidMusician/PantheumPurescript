@@ -8,3 +8,5 @@
 /dist/scansion.js
 
 src/\.DS_Store
+
+generated-docs/
