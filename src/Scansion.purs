@@ -22,7 +22,8 @@ import Halogen.Aff (HalogenEffects)
 import Halogen.Aff.Util (awaitBody, runHalogenAff)
 import Halogen.VDom.Driver (runUI)
 import Pantheum.Latin.Scansion (mklines)
-import TextCursor (TextCursor(TextCursor), focusTextCursorById, setTextCursor, textCursor, value)
+import TextCursor (TextCursor(TextCursor), focusTextCursorById, setTextCursor, textCursor, concat)
+import TextCursor.Element (TextCursorElement(..))
 import Unsafe.Coerce (unsafeCoerce)
 
 data Query a
@@ -77,7 +78,7 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
     render state =
         HH.div_
             [ HH.h2_/>"Pantheum: Scansion"
-            , HH.div_ $ map display $ mklines state.simplify (value state.text)
+            , HH.div_ $ map display $ mklines state.simplify (concat state.text)
             , HH.br_
             , legend state.simplify
             , checkbox (HE.input_ ToggleState) [] "Simplify scansion marks" state.simplify
@@ -87,7 +88,7 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
                 [ HP.id_ textareaid
                 , HP.placeholder "Text to scan"
                 , HP.rows 5
-                , HP.value $ value state.text
+                , HP.value $ concat state.text
                 , HE.onInput $ HE.input UserInput
                 , HE.onClick $ HE.input (UserInput <<< mouseEventToEvent)
                 , HE.onKeyUp $ HE.input (UserInput <<< keyboardEventToEvent)
@@ -118,7 +119,7 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
         H.liftEff $ focusTextCursorById textareaId text
         pure next
     eval (UserInput e next) = do
-        let node = unsafeCoerce Event.target e :: HTMLTextAreaElement
+        let node = TextArea $ unsafeCoerce Event.target e :: HTMLTextAreaElement
         TextCursor { before, selected, after } <- H.liftEff $ textCursor node
         let text = TextCursor
                 { before: normalize before
