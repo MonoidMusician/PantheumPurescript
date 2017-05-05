@@ -22,7 +22,7 @@ import Halogen.Aff (HalogenEffects)
 import Halogen.Aff.Util (awaitBody, runHalogenAff)
 import Halogen.VDom.Driver (runUI)
 import Pantheum.Latin.Scansion (mklines)
-import TextCursor (TextCursor(TextCursor), concat)
+import TextCursor (TextCursor(TextCursor), concat, insert)
 import TextCursor.Element (TextCursorElement(..), focusTextCursorById, setTextCursor, textCursor)
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -103,18 +103,7 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
         pure next
     eval (Insert insertion next) = do
         state <- get
-        let
-            text = case state.text of
-                TextCursor { before, selected: "", after } -> TextCursor
-                    { before: before <> insertion
-                    , selected: ""
-                    , after: after
-                    }
-                TextCursor { before, selected, after } -> TextCursor
-                    { before: before
-                    , selected: selected <> insertion
-                    , after: after
-                    }
+        let text = insert insertion state.text
         put { simplify: state.simplify, text }
         H.liftEff $ focusTextCursorById textareaId text
         pure next
