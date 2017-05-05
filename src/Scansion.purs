@@ -18,6 +18,7 @@ import Data.Maybe (Maybe(..))
 import Data.String.Regex (replace)
 import Data.String.Regex.Flags (global)
 import Data.String.Regex.Unsafe (unsafeRegex)
+import Data.Traversable (traverse_)
 import Halogen.Aff (HalogenEffects)
 import Halogen.Aff.Util (awaitBody, runHalogenAff)
 import Halogen.VDom.Driver (runUI)
@@ -31,7 +32,7 @@ import TextCursor.Element
     )
 
 data Query a
-    = ToggleState a
+    = ToggleSimplification a
     | UserInput Event a
     | Insert String a
 
@@ -81,6 +82,7 @@ normalize =
 ui :: forall eff. H.Component HH.HTML Query Unit Void (Aff (dom :: DOM | eff))
 ui = H.component { render, eval, initialState: const initialState, receiver: const Nothing }
     where
+    -- a unique id for the text area to refocus it after clicking insert macron
     textareaid = "scansion-input"
     textareaId = ElementId textareaid
 
@@ -91,7 +93,7 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
             , HH.div_ $ map display $ mklines state.simplify (join state.text)
             , HH.br_
             , legend state.simplify
-            , checkbox (HE.input_ ToggleState) [] "Simplify scansion marks" state.simplify
+            , checkbox (HE.input_ ToggleSimplification) [] "Simplify scansion marks" state.simplify
             , button (HE.input_ $ Insert "\x0304") [] "Add macron (¯)"
             , button (HE.input_ $ Insert "\x0361") [] ("Add tie (i\x0361" <> "a)")
             , HH.textarea
@@ -108,19 +110,24 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
             ]
 
     eval :: Query ~> H.ComponentDSL UIState Query Void (Aff (dom :: DOM | eff))
-    eval (ToggleState next) = do
+    eval (ToggleSimplification next) = do
         modifying simplifyL not
         pure next
     eval (Insert insertion next) = do
+        -- modify the stored text selection
         modifying textL (insert insertion)
+        -- retrieve it from the state
         text <- get <#> _.text
+        -- and set it on the element, which has lost focus
         H.liftEff $ focusTextCursorById textareaId text
         pure next
     eval (UserInput e next) = do
-        elm <- H.liftEff $ validate' $ readEventTarget e
-        case elm of
-            Just el -> modifyTextCursorST textL (mapAll normalize) el
-            _ -> pure unit
+        -- update text cursor from the event, but also normalize it to replace
+        -- quotes, etc.
+        element <- H.liftEff (validate' $ readEventTarget e)
+        let transformation = mapAll normalize
+        let action = modifyTextCursorST textL transformation
+        traverse_ action element
         pure next
 
 main :: Eff (HalogenEffects ()) Unit

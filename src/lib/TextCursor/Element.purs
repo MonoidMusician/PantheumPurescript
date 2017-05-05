@@ -32,6 +32,7 @@ import TextCursor.Element.HTML
     , selectionEnd, setSelectionEnd
     )
 
+-- | Get the `TextCursor` from a `TextCursorElement`.
 textCursor :: forall eff. TextCursorElement -> Eff ( dom :: DOM | eff ) TextCursor
 textCursor element = do
     val <- value element
@@ -45,6 +46,8 @@ textCursor element = do
         , after
         }
 
+-- | Set the `TextCursor` on a `TextCursorElement`. Calls `setValue`,
+-- | `setSelectionStart`, and `setSelectionEnd`.
 setTextCursor :: forall eff. TextCursor -> TextCursorElement -> Eff ( dom :: DOM | eff ) Unit
 setTextCursor (tc@TextCursor { before, selected, after }) element = do
     setValue (join tc) element
@@ -53,11 +56,14 @@ setTextCursor (tc@TextCursor { before, selected, after }) element = do
     setSelectionStart start element
     setSelectionEnd end element
 
+-- | Modifies the `TextCursor` on an element through the given morphism.
 modifyTextCursor :: forall eff. (TextCursor -> TextCursor) -> TextCursorElement -> Eff ( dom :: DOM | eff ) Unit
 modifyTextCursor f element = do
     tc <- f <$> textCursor element
     setTextCursor tc element
 
+-- | Modifies the `TextCursor` on an element as well as setting the result in a
+-- | State+Eff monad. Useful for components processing input events!
 modifyTextCursorST :: forall eff m s.
     MonadState s m =>
     MonadEff ( dom :: DOM | eff ) m =>
@@ -69,11 +75,13 @@ modifyTextCursorST l f element = do
     liftEff $ setTextCursor tc element
     modify $ l .~ tc
 
+-- | Focuses an element after setting the `TextCursor`.
 focusTextCursor :: forall eff. TextCursor -> TextCursorElement -> Eff ( dom :: DOM | eff ) Unit
 focusTextCursor tc element = do
     setTextCursor tc element
     focus (htmlTextCursorElementToHTMLElement element)
 
+-- | Looks up an element by id to focus with a `TextCursor`.
 focusTextCursorById :: forall eff. ElementId -> TextCursor -> Eff ( dom :: DOM | eff ) Unit
 focusTextCursorById name tc = do
     lookupValidateAndDo name (focusTextCursor tc)
