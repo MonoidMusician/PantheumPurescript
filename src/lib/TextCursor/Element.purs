@@ -4,6 +4,7 @@ module TextCursor.Element
     , selectionStart, setSelectionStart
     , selectionEnd, setSelectionEnd
     , textCursor, setTextCursor
+    , modifyTextCursor, modifyTextCursorST
     , focusTextCursor, focusTextCursorById
     ) where
 
@@ -11,10 +12,14 @@ import Prelude
 import DOM.HTML.HTMLInputElement as HInput
 import DOM.HTML.HTMLTextAreaElement as HTextArea
 import Control.Monad.Eff (Eff)
+import Control.Monad.Eff.Class (class MonadEff, liftEff)
+import Control.Monad.State.Class (class MonadState, modify)
 import DOM (DOM)
 import DOM.HTML.HTMLElement (focus)
 import DOM.HTML.Types (HTMLInputElement, HTMLTextAreaElement)
 import DOM.Node.Types (ElementId)
+import Data.Lens ((.~))
+import Data.Lens.Types (Lens')
 import Data.String (length)
 import Data.Tuple (Tuple(..))
 import Helpers.String (splitAtTuple)
@@ -75,6 +80,22 @@ setTextCursor (tc@TextCursor { before, selected, after }) element = do
     let end = start + length selected
     setSelectionStart start element
     setSelectionEnd end element
+
+modifyTextCursor :: forall eff. (TextCursor -> TextCursor) -> TextCursorElement -> Eff ( dom :: DOM | eff ) Unit
+modifyTextCursor f element = do
+    tc <- f <$> textCursor element
+    setTextCursor tc element
+
+modifyTextCursorST :: forall eff m s.
+    MonadState s m =>
+    MonadEff ( dom :: DOM | eff ) m =>
+    Lens' s TextCursor ->
+    (TextCursor -> TextCursor) ->
+    TextCursorElement -> m Unit
+modifyTextCursorST l f element = do
+    tc <- liftEff $ f <$> textCursor element
+    liftEff $ setTextCursor tc element
+    modify $ l .~ tc
 
 focusTextCursor :: forall eff. TextCursor -> TextCursorElement -> Eff ( dom :: DOM | eff ) Unit
 focusTextCursor tc element = do

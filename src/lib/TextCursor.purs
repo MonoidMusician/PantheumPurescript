@@ -1,8 +1,7 @@
 module TextCursor
     ( TextCursor(..)
     , beforeL, selectedL, afterL
-    , concat
-    , insert
+    , concat, insert, mapAll
     ) where
 
 import Prelude
@@ -33,6 +32,13 @@ selectedL = _Newtype <<< lens (_.selected) (\o s -> o { selected = s })
 
 afterL :: Lens' TextCursor String
 afterL = _Newtype <<< lens (_.after) (\o a -> o { after = a })
+
+mapAll :: (String -> String) -> TextCursor -> TextCursor
+mapAll f (TextCursor { before, selected, after }) = TextCursor
+    { before: f before
+    , selected: f selected
+    , after: f after
+    }
 
 concat :: TextCursor -> String
 concat (TextCursor { before, selected, after }) = before <> selected <> after

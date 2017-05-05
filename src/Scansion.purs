@@ -24,8 +24,8 @@ import Halogen.Aff (HalogenEffects)
 import Halogen.Aff.Util (awaitBody, runHalogenAff)
 import Halogen.VDom.Driver (runUI)
 import Pantheum.Latin.Scansion (mklines)
-import TextCursor (TextCursor(TextCursor), concat, insert)
-import TextCursor.Element (TextCursorElement(..), focusTextCursorById, setTextCursor, textCursor)
+import TextCursor (TextCursor(TextCursor), concat, insert, mapAll)
+import TextCursor.Element (TextCursorElement(..), focusTextCursorById, modifyTextCursor, modifyTextCursorST, setTextCursor, textCursor)
 import Unsafe.Coerce (unsafeCoerce)
 
 data Query a
@@ -116,14 +116,7 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
         pure next
     eval (UserInput e next) = do
         let node = TextArea $ unsafeCoerce Event.target e :: HTMLTextAreaElement
-        TextCursor { before, selected, after } <- H.liftEff $ textCursor node
-        let text = TextCursor
-                { before: normalize before
-                , selected: normalize selected
-                , after: normalize after
-                }
-        H.liftEff $ setTextCursor text node
-        modifying textL (const text)
+        modifyTextCursorST textL (mapAll normalize) node
         pure next
 
 main :: Eff (HalogenEffects ()) Unit
