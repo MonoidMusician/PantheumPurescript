@@ -16,6 +16,7 @@
     "purescript-halogen-css": "^6.0.0",
     "purescript-debug": "^3.0.0",
     "purescript-aff": "^3.0.0",
-    "purescript-sized-vectors": "^2.0.0"
+    "purescript-sized-vectors": "^2.0.0",
+    "purescript-profunctor-lenses": "^3.2.0"
   }
 }

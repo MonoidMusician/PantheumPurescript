@@ -9,11 +9,13 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Control.Monad.Aff (Aff)
 import Control.Monad.Eff (Eff)
-import Control.Monad.State.Trans (get, put)
+import Control.Monad.State.Trans (get)
 import DOM (DOM)
 import DOM.Event.Types (Event, focusEventToEvent, keyboardEventToEvent, mouseEventToEvent)
 import DOM.HTML.Types (HTMLTextAreaElement)
 import DOM.Node.Types (ElementId(..))
+import Data.Lens (lens, modifying)
+import Data.Lens.Types (Lens')
 import Data.Maybe (Maybe(..))
 import Data.String.Regex (replace)
 import Data.String.Regex.Flags (global)
@@ -36,6 +38,12 @@ type UIState =
     { simplify :: Boolean
     , text :: TextCursor
     }
+
+simplifyL :: Lens' UIState Boolean
+simplifyL = lens (_.simplify) (\o s -> o { simplify = s })
+
+textL :: Lens' UIState TextCursor
+textL = lens (_.text) (\o t -> o { text = t })
 
 initialState :: UIState
 initialState =
@@ -99,12 +107,11 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
 
     eval :: Query ~> H.ComponentDSL UIState Query Void (Aff (dom :: DOM | eff))
     eval (ToggleState next) = do
-        H.modify (\state -> { simplify: not state.simplify, text: state.text })
+        modifying simplifyL not
         pure next
     eval (Insert insertion next) = do
-        state <- get
-        let text = insert insertion state.text
-        put { simplify: state.simplify, text }
+        modifying textL (insert insertion)
+        text <- _.text <$> get
         H.liftEff $ focusTextCursorById textareaId text
         pure next
     eval (UserInput e next) = do
@@ -116,7 +123,7 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
                 , after: normalize after
                 }
         H.liftEff $ setTextCursor text node
-        H.modify (\state -> { simplify: state.simplify, text })
+        modifying textL (const text)
         pure next
 
 main :: Eff (HalogenEffects ()) Unit
