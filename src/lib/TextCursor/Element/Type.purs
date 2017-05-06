@@ -1,14 +1,14 @@
 module TextCursor.Element.Type
     ( TextCursorElement(..)
     , htmlTextCursorElementToHTMLElement
-    , read, readEventTarget
+    , read, read', readEventTarget
     , validate, validate'
     , lookupAndValidate
     , lookupValidateAndDo
     ) where
 
-import Prelude (Unit, bind, map, pure, (<$>), (<<<), (>>=))
-import Data.Maybe (Maybe(..))
+import Prelude (Unit, bind, map, pure, (<$>), (<#>), (<<<), (>>=))
+import Data.Maybe (Maybe(..), maybe)
 import Data.Either (Either(..))
 import Data.Array (elem)
 import Data.Traversable (traverse_)
@@ -29,7 +29,7 @@ import DOM.HTML.Types
 import DOM.HTML (window)
 import DOM.HTML.Window (document)
 import DOM.HTML.HTMLInputElement (type_)
-import DOM.Node.Types (ElementId)
+import DOM.Node.Types (Element, ElementId)
 import DOM.Node.NonElementParentNode (getElementById)
 
 -- | A container for the two usable `Element` types:
@@ -49,16 +49,19 @@ htmlTextCursorElementToHTMLElement (Input e) = htmlInputElementToHTMLElement e
 htmlTextCursorElementToHTMLElement (TextArea e) = htmlTextAreaElementToHTMLElement e
 
 -- | Read a `TextCursorElement` from a `Foreign` type.
-read :: Foreign -> F TextCursorElement
-read e = ta <|> i
+read' :: Foreign -> F TextCursorElement
+read' e = ta <|> i
     where
         -- prefer TextArea, which needs no validation
         ta = TextArea <$> readHTMLTextAreaElement e
         i = Input <$> readHTMLInputElement e
 
+read :: Element -> F TextCursorElement
+read = read' <<< toForeign
+
 -- | Read a `TextCursorElement` from the `target` field of an `Event`.
 readEventTarget :: Event -> F TextCursorElement
-readEventTarget = read <<< toForeign <<< target
+readEventTarget = read' <<< toForeign <<< target
 
 -- | Validate a `TextCursorElement`. Input fields need to have one of the
 -- | following types when this is called:
@@ -93,7 +96,7 @@ lookupAndValidate :: forall eff. ElementId -> Eff ( dom :: DOM | eff ) (Maybe Te
 lookupAndValidate name = do
     win <- window
     doc <- htmlDocumentToNonElementParentNode <$> document win
-    getElementById name doc >>= validate' <<< read <<< toForeign
+    getElementById name doc <#> map read >>= maybe (pure Nothing) validate'
 
 -- | Look up a `TextCursorElement` by id and run an action if found.
 lookupValidateAndDo :: forall eff. ElementId -> (TextCursorElement -> Eff ( dom :: DOM | eff ) Unit) -> Eff ( dom :: DOM | eff ) Unit

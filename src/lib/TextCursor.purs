@@ -2,13 +2,13 @@ module TextCursor
     ( TextCursor(..)
     , beforeL, selectedL, afterL -- my lens naming convention: *L
     , selectAll, moveCursorToStart, moveCursorToEnd
-    , empty, join
+    , content, empty, single
     , insert, mapAll
     ) where
 
-import Prelude hiding (join)
+import Prelude
 import Data.Newtype (class Newtype)
-import Data.Lens (Lens', lens)
+import Data.Lens (Lens', lens, (.~))
 import Data.Lens.Iso.Newtype (_Newtype)
 
 -- | The `TextCursor` type represents text selection within an input element.
@@ -22,6 +22,11 @@ newtype TextCursor = TextCursor
     }
 
 derive instance textCursorNewtype :: Newtype TextCursor _
+
+-- | Get the current text in the field. (Everything before, inside, and after
+-- | the selection.)
+content :: TextCursor -> String
+content (TextCursor { before, selected, after }) = before <> selected <> after
 
 -- | An empty input field. No selection.
 empty :: TextCursor
@@ -41,6 +46,12 @@ selectedL = _Newtype <<< lens (_.selected) (\o s -> o { selected = s })
 afterL :: Lens' TextCursor String
 afterL = _Newtype <<< lens (_.after) (\o a -> o { after = a })
 
+-- | Apply a `Lens` setting a value to an empty `TextCursor`. When used with
+-- | `beforeL`, `selectedL`, or `afterL` this will provide a `TextCursor` with
+-- | only one non-empty field.
+single :: Lens' TextCursor String -> String -> TextCursor
+single l v = l .~ v $ empty
+
 -- | Map all three fields of the `TextCursor` with an endomorphism, performing
 -- | a replacement or other transformation such as normalization.
 mapAll :: (String -> String) -> TextCursor -> TextCursor
@@ -56,7 +67,7 @@ moveCursorToStart :: TextCursor -> TextCursor
 moveCursorToStart tc = TextCursor
     { before: ""
     , selected: ""
-    , after: join tc
+    , after: content tc
     }
 
 -- | Select all of the text in a field.
@@ -65,22 +76,17 @@ moveCursorToStart tc = TextCursor
 selectAll :: TextCursor -> TextCursor
 selectAll tc = TextCursor
     { before: ""
-    , selected: join tc
+    , selected: content tc
     , after: ""
     }
 
 -- | Move the cursor to the end of a field, preserving the overall text content.
 moveCursorToEnd :: TextCursor -> TextCursor
 moveCursorToEnd tc = TextCursor
-    { before: join tc
+    { before: content tc
     , selected: ""
     , after: ""
     }
-
--- | Get the current text in the field. (Everything before, inside, and after
--- | the selection.)
-join :: TextCursor -> String
-join (TextCursor { before, selected, after }) = before <> selected <> after
 
 -- | Insert a string at the cursor position. If text is selected, the insertion
 -- | will be part of the selection. Otherwise it is inserted before the cursor.

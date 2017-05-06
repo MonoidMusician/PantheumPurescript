@@ -1,6 +1,6 @@
 module Scansion where
 
-import Prelude hiding (join)
+import Prelude
 import UIHelpers (button, checkbox, display, (/>))
 import Halogen as H
 import Halogen.HTML as HH
@@ -10,10 +10,14 @@ import Control.Monad.Aff (Aff)
 import Control.Monad.Eff (Eff)
 import Control.Monad.State.Trans (get)
 import DOM (DOM)
-import DOM.Event.Types (Event, focusEventToEvent, keyboardEventToEvent, mouseEventToEvent)
+import DOM.Event.Types
+    ( Event
+    , focusEventToEvent
+    , keyboardEventToEvent
+    , mouseEventToEvent
+    )
 import DOM.Node.Types (ElementId(..))
-import Data.Lens (lens, modifying)
-import Data.Lens.Types (Lens')
+import Data.Lens (Lens', lens, iso, (^.), modifying)
 import Data.Maybe (Maybe(..))
 import Data.String.Regex (replace)
 import Data.String.Regex.Flags (global)
@@ -23,7 +27,12 @@ import Halogen.Aff (HalogenEffects)
 import Halogen.Aff.Util (awaitBody, runHalogenAff)
 import Halogen.VDom.Driver (runUI)
 import Pantheum.Latin.Scansion (mklines)
-import TextCursor (TextCursor(TextCursor), join, insert, mapAll)
+import TextCursor
+    ( TextCursor(TextCursor)
+    , content, single
+    , beforeL, selectedL, afterL
+    , insert, mapAll
+    )
 import TextCursor.Element
     ( focusTextCursorById
     , modifyTextCursorST
@@ -47,6 +56,9 @@ simplifyL = lens (_.simplify) (\o s -> o { simplify = s })
 
 textL :: Lens' UIState TextCursor
 textL = lens (_.text) (\o t -> o { text = t })
+
+textContentL :: Lens' UIState String
+textContentL = iso content (single beforeL) >>> textL
 
 initialState :: UIState
 initialState =
@@ -90,7 +102,7 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
     render state =
         HH.div_
             [ HH.h2_/>"Pantheum: Scansion"
-            , HH.div_ $ map display $ mklines state.simplify (join state.text)
+            , HH.div_ $ map display $ mklines state.simplify (state ^. textContentL)
             , HH.br_
             , legend state.simplify
             , checkbox (HE.input_ ToggleSimplification) [] "Simplify scansion marks" state.simplify
@@ -100,13 +112,23 @@ ui = H.component { render, eval, initialState: const initialState, receiver: con
                 [ HP.id_ textareaid
                 , HP.placeholder "Text to scan"
                 , HP.rows 5
-                , HP.value $ join state.text
+                , HP.value $ state ^. textContentL
+                -- update the text cursor when the value in the box changes
                 , HE.onInput $ HE.input UserInput
+                -- update when the user clicks, which can change the cursor
                 , HE.onClick $ HE.input (UserInput <<< mouseEventToEvent)
+                -- (arrow) key presses can also change the cursor
                 , HE.onKeyUp $ HE.input (UserInput <<< keyboardEventToEvent)
+                -- finally, ensure the text cursor is most recent before
+                -- the user clicks on a button to change it
                 , HE.onBlur $ HE.input (UserInput <<< focusEventToEvent)
                 ]
             , HH.br_
+            , HH.pre_
+                let
+                    get l = HH.text $ state.text ^. l
+                    sep = HH.text "|"
+                in [ get beforeL, sep, get selectedL, sep, get afterL ]
             ]
 
     eval :: Query ~> H.ComponentDSL UIState Query Void (Aff (dom :: DOM | eff))

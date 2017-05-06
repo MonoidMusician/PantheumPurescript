@@ -6,7 +6,7 @@ module TextCursor.Element
     , focusTextCursor, focusTextCursorById
     ) where
 
-import Prelude hiding (join)
+import Prelude
 import Data.Tuple (Tuple(Tuple))
 import Data.String (length)
 import Data.Lens (Lens', (.~))
@@ -17,7 +17,7 @@ import DOM (DOM)
 import DOM.Node.Types (ElementId)
 import DOM.HTML.HTMLElement (focus)
 import Helpers.String (splitAtTuple)
-import TextCursor (TextCursor(..), join)
+import TextCursor (TextCursor(..), content)
 import TextCursor.Element.Type
     ( TextCursorElement(..)
     , htmlTextCursorElementToHTMLElement
@@ -50,7 +50,7 @@ textCursor element = do
 -- | `setSelectionStart`, and `setSelectionEnd`.
 setTextCursor :: forall eff. TextCursor -> TextCursorElement -> Eff ( dom :: DOM | eff ) Unit
 setTextCursor (tc@TextCursor { before, selected, after }) element = do
-    setValue (join tc) element
+    setValue (content tc) element
     let start = length before
     let end = start + length selected
     setSelectionStart start element
